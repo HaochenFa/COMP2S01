@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Momo art sheet</title>
+<link rel="stylesheet" href="../css/fonts.css">
+<style>
+body{margin:0;padding:30px;font-family:'Grandstander';color:#27245C;font-weight:700}
+h1{font-family:'Bagel Fat One';font-weight:400;font-size:64px;margin:0 0 10px;line-height:1}
+.row{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin:14px 0}
+.cell{text-align:center;font-size:14px}
+</style>
+<body>
+<h1>Momo Learns to Munch</h1>
+<div id="out"></div>
+<script src="../js/tokens.js"></script><script src="../js/art.js"></script>
+<script>
+var A=MomoArt,T=MomoTokens,o=document.getElementById('out');
+Object.assign(document.body.style,A.cloth(48));
+function row(html){var d=document.createElement('div');d.className='row';d.innerHTML=html;o.appendChild(d);}
+var moods=['idle','happy','cheer','yum','yuck','think','oops','wow','blink'];
+row(moods.map(function(m){return '<div class="cell">'+A.momo(m,170)+'<br>'+m+'</div>';}).join(''));
+var spikes=[0,0.12,0.3,0.38,0.57,0.62,0.8,0.9];
+['blue','green','tangerine','purple'].forEach(function(c,ci){
+  row(spikes.map(function(s,i){return '<div class="cell">'+A.snack({color:c,size:[0.1,0.4,0.7,1][(i+ci)%4],spike:s},i%3==0?'yum':(i%3==1?'yuck':null))+'<br>'+s+'</div>';}).join(''));
+});
+row(A.plate(430,240)+A.tray(500,130)+A.computer(260)+A.hand(90));
+row(['heart','star','star-empty','stink','sparkle','check','cross','play','sound-on','sound-off','help','fast','close'].map(function(i){return A.icon(i,44);}).join(''));
+</script>

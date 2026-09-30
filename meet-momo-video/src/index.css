@@ -1,0 +1,2 @@
+/* The video takes its colours, fonts and drawings from the game. See src/momo.ts. */
+svg { display: block; overflow: visible; }

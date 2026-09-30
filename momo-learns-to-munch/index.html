@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Momo Learns to Munch</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/game.css">
+  <script src="js/tokens.js"></script>
+  <script>
+    // Hand the shared colours to the stylesheet.
+    (function (c) {
+      var style = document.documentElement.style;
+      style.setProperty('--ink', c.ink);
+      style.setProperty('--cloth', c.cloth);
+      style.setProperty('--white', c.white);
+      style.setProperty('--shade', c.shade);
+      style.setProperty('--pink', c.pink);
+      style.setProperty('--pink-deep', c.pinkDeep);
+      style.setProperty('--stink', c.stink);
+    })(MomoTokens.color);
+  </script>
+</head>
+<body>
+  <main id="stage" class="stage" data-screen="start" aria-label="Momo Learns to Munch">
+
+    <!-- Start screen -->
+    <section class="screen screen-start" id="screen-start">
+      <div class="start-words">
+        <h1 class="logo" id="logo" aria-label="Momo Learns to Munch"></h1>
+        <p class="tagline">Teach a tiny AI which snacks are yum and which are yuck.</p>
+        <div class="start-buttons">
+          <button class="btn btn-primary btn-big" id="btn-play">Play</button>
+          <button class="btn" id="btn-video"><span class="btn-icon" data-icon="play"></span>Meet Momo</button>
+        </div>
+      </div>
+      <div class="start-art" id="start-art" aria-hidden="true"></div>
+    </section>
+
+    <!-- How to play -->
+    <section class="screen screen-how" id="screen-how">
+      <h2 class="title">How to play</h2>
+      <ol class="steps" id="steps"></ol>
+      <div class="how-buttons">
+        <button class="btn btn-primary btn-big" id="btn-go">Let's go!</button>
+      </div>
+    </section>
+
+    <!-- The game -->
+    <section class="screen screen-play" id="screen-play">
+      <header class="hud">
+        <div class="hud-level"><span class="hud-number" id="hud-number">1</span><span class="hud-name" id="hud-name"></span></div>
+        <div class="hud-stars" id="hud-stars" role="img" aria-label="Stars"></div>
+        <div class="hud-score"><span class="hud-score-word">Score</span><span class="hud-score-number" id="hud-score">0</span></div>
+        <div class="hud-tools">
+          <button class="round" id="btn-sound" aria-label="Sound on or off"></button>
+          <button class="round" id="btn-help" aria-label="How to play"></button>
+        </div>
+      </header>
+
+      <button class="plate plate-yum" id="plate-yum" aria-label="Yum plate">
+        <span class="plate-name"><span data-icon="heart"></span>Yum!</span>
+      </button>
+      <button class="plate plate-yuck" id="plate-yuck" aria-label="Yuck plate">
+        <span class="plate-name"><span data-icon="stink"></span>Yuck!</span>
+      </button>
+
+      <div class="spot" id="spot" aria-hidden="true"></div>
+      <div class="momo" id="momo" aria-hidden="true"></div>
+      <div class="bubble" id="bubble" role="status" aria-live="polite"><span id="bubble-text"></span></div>
+
+      <div class="tray" id="tray" aria-hidden="true"></div>
+      <div class="results" id="results">
+        <div class="results-note" id="results-note"></div>
+      </div>
+
+      <svg class="lines" id="lines" viewBox="0 0 1280 720" aria-hidden="true"></svg>
+      <div class="snacks" id="snacks"></div>
+      <div class="hand" id="hand" aria-hidden="true"></div>
+
+      <div class="actions" id="actions"></div>
+      <div class="banner" id="banner" aria-hidden="true"></div>
+
+      <div class="veil" id="veil">
+        <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="card-title"></div>
+      </div>
+    </section>
+
+    <!-- The end -->
+    <section class="screen screen-final" id="screen-final"></section>
+
+    <!-- Intro video -->
+    <div class="veil veil-video" id="video-veil">
+      <div class="video-frame">
+        <video id="video" src="media/meet-momo.mp4" controls playsinline preload="metadata"></video>
+        <button class="round round-close" id="btn-video-close" aria-label="Close the video"></button>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/art.js"></script>
+  <script src="js/brain.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

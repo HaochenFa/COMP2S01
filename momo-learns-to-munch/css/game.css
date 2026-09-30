@@ -1,0 +1,386 @@
+/*
+ * Momo Learns to Munch: how everything looks.
+ *
+ * The whole game is drawn on a 1280 x 720 stage that is scaled to fit the
+ * window. Colours come from js/tokens.js (index.html passes them in).
+ *
+ * Two kinds of shadow, used the same way everywhere:
+ *   a solid ink shadow means "you can press this"
+ *   a soft flat shadow means "this is sitting on the picnic cloth"
+ */
+
+:root {
+  --soft: rgba(39, 36, 92, 0.16);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease: cubic-bezier(0.22, 0.8, 0.3, 1);
+  --display: 'Bagel Fat One', 'Grandstander', system-ui, sans-serif;
+  --body: 'Grandstander', 'Trebuchet MS', system-ui, sans-serif;
+  --scale: 1;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; overflow: hidden; }
+
+body {
+  /* The picnic cloth. It covers the whole window, however big. */
+  background-color: var(--cloth);
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.24) 50%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.24) 50%, transparent 50%);
+  background-size: calc(128px * var(--scale)) calc(128px * var(--scale));
+  background-position: center;
+  color: var(--ink);
+  font-family: var(--body);
+  font-weight: 700;
+}
+
+.stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1280px; height: 720px;
+  transform: translate(-50%, -50%) scale(var(--scale));
+  user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.screen { position: absolute; inset: 0; display: none; }
+.stage[data-screen='start'] .screen-start,
+.stage[data-screen='how'] .screen-how,
+.stage[data-screen='play'] .screen-play,
+.stage[data-screen='final'] .screen-final { display: block; }
+
+h1, h2, h3, p, ol { margin: 0; padding: 0; }
+button { font: inherit; color: inherit; }
+svg { display: block; overflow: visible; }
+
+:focus-visible { outline: 4px solid var(--pink-deep); outline-offset: 4px; }
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 28px 10px;
+  border: 4px solid var(--ink); border-radius: 999px;
+  background: var(--white);
+  font-weight: 800; font-size: 24px; line-height: 1.2;
+  box-shadow: 0 6px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease), background-color 0.15s;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+.btn-primary { background: var(--pink); }
+.btn-big { font-size: 34px; padding: 14px 52px 12px; font-family: var(--display); font-weight: 400; letter-spacing: 0.01em; }
+.btn[aria-disabled='true'] { background: var(--white); color: rgba(39, 36, 92, 0.45); border-color: rgba(39, 36, 92, 0.45); box-shadow: 0 6px 0 rgba(39, 36, 92, 0.3); }
+.btn-icon { display: inline-flex; }
+
+.round {
+  width: 54px; height: 54px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 4px solid var(--ink); border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 5px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease);
+}
+.round:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--ink); }
+.round:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+
+/* ---------- Start screen ---------- */
+
+.start-words { position: absolute; left: 84px; top: 112px; width: 640px; }
+.logo svg { overflow: visible; }
+.tagline { margin-top: 18px; font-size: 30px; line-height: 1.3; max-width: 520px; }
+.start-buttons { margin-top: 40px; display: flex; align-items: center; gap: 22px; }
+
+.start-art { position: absolute; left: 700px; top: 96px; width: 540px; height: 580px; }
+.start-art > * { position: absolute; }
+.start-peek { overflow: hidden; }
+.start-peek .momo-svg { animation: peek 4.5s var(--ease) infinite; }
+@keyframes peek {
+  0%, 100% { transform: translateY(0); }
+  45%, 60% { transform: translateY(-16px); }
+}
+
+/* ---------- How to play ---------- */
+
+.title { font-family: var(--display); font-weight: 400; font-size: 60px; line-height: 1; }
+.screen-how .title { position: absolute; left: 70px; top: 52px; }
+.steps { position: absolute; left: 70px; top: 150px; width: 1140px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; list-style: none; }
+.step {
+  position: relative; height: 410px; padding: 0 26px 22px;
+  border: 4px solid var(--ink); border-radius: 34px;
+  background: var(--white);
+  box-shadow: 0 10px 0 var(--soft);
+}
+.step-number {
+  position: absolute; left: -16px; top: -18px;
+  width: 58px; height: 58px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--white);
+  font-family: var(--display); font-weight: 400; font-size: 32px; padding-top: 3px;
+  z-index: 2;
+}
+.step-art { position: relative; height: 218px; margin: 0 -26px; border-radius: 30px 30px 0 0; overflow: hidden; background-color: var(--cloth);
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.24) 50%, transparent 50%), linear-gradient(rgba(255, 255, 255, 0.24) 50%, transparent 50%);
+  background-size: 64px 64px; border-bottom: 4px solid var(--ink); }
+.step-art > * { position: absolute; }
+.step h3 { margin-top: 18px; font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; }
+.step p { margin-top: 8px; font-size: 21px; line-height: 1.36; font-weight: 500; }
+.step p b { font-weight: 800; }
+.how-buttons { position: absolute; left: 0; right: 0; top: 606px; display: flex; justify-content: center; gap: 20px; }
+
+/* ---------- Game: top bar ---------- */
+
+.hud { position: absolute; left: 28px; right: 28px; top: 18px; height: 58px; display: flex; align-items: center; gap: 18px; }
+.hud-level { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.hud-number {
+  width: 56px; height: 56px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding-top: 3px;
+  background: var(--ink); color: var(--white);
+  font-family: var(--display); font-weight: 400; font-size: 32px;
+}
+.hud-name { font-family: var(--display); font-weight: 400; font-size: 32px; padding-top: 4px; }
+.hud-stars { display: flex; gap: 2px; }
+.hud-stars svg.pop { animation: pop 0.5s var(--spring); }
+.hud-score {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 20px 3px; border: 4px solid var(--ink); border-radius: 999px; background: var(--white);
+}
+.hud-score-word { font-size: 20px; font-weight: 800; }
+.hud-score-number { font-size: 28px; font-weight: 800; min-width: 52px; text-align: right; }
+.hud-score.bump { animation: pop 0.45s var(--spring); }
+.hud-tools { display: flex; gap: 12px; }
+
+/* ---------- Game: plates, Momo, speech bubble ---------- */
+
+.plate {
+  position: absolute; top: 215px; width: 430px; height: 240px;
+  padding: 0; border: 0; background: none; border-radius: 50%;
+  cursor: default;
+  transition: transform 0.25s var(--spring);
+}
+.plate-yum { left: 20px; }
+.plate-yuck { left: 830px; }
+.plate.over { transform: scale(1.05); }
+.plate.target { cursor: pointer; animation: breathe 1.1s ease-in-out infinite; }
+.plate-name {
+  position: absolute; left: 0; right: 0; top: -50px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--display); font-weight: 400; font-size: 40px; line-height: 1;
+  pointer-events: none;
+}
+.plate-name > span { display: inline-flex; margin-top: -6px; }
+
+.momo { position: absolute; left: 535px; top: 196px; width: 210px; height: 210px; pointer-events: none; }
+.momo .momo-body { transform-box: fill-box; transform-origin: 50% 100%; animation: bob 2.8s ease-in-out infinite; }
+.momo .momo-shadow { transform-box: fill-box; transform-origin: 50% 50%; animation: bob-shadow 2.8s ease-in-out infinite; }
+.momo.hop { animation: hop 0.5s var(--ease); }
+.momo.shake { animation: shake 0.45s var(--ease); }
+.momo-svg[data-mood='think'] .momo-spark { animation: spark 0.45s ease-in-out infinite alternate; }
+
+.bubble {
+  position: absolute; left: 640px; bottom: 528px;
+  width: max-content; max-width: 480px;
+  padding: 14px 24px 11px;
+  border: 4px solid var(--ink); border-radius: 28px;
+  background: var(--white);
+  box-shadow: 0 6px 0 var(--soft);
+  font-size: 25px; line-height: 1.3; text-align: center;
+  transform: translateX(-50%) scale(0); transform-origin: 50% 120%;
+  transition: transform 0.28s var(--spring);
+  pointer-events: none;
+}
+.bubble.show { transform: translateX(-50%) scale(1); }
+.bubble::after {
+  content: ''; position: absolute; left: 50%; bottom: -13px;
+  width: 20px; height: 20px; margin-left: -10px;
+  background: var(--white);
+  border-right: 4px solid var(--ink); border-bottom: 4px solid var(--ink);
+  border-radius: 0 0 6px 0;
+  transform: rotate(45deg);
+}
+.bubble.shout { font-family: var(--display); font-weight: 400; font-size: 44px; padding: 10px 30px 4px; }
+
+.spot {
+  position: absolute; left: 584px; top: 428px; width: 112px; height: 100px;
+  border-radius: 50%; border: 4px dashed rgba(39, 36, 92, 0.4);
+  opacity: 0; transition: opacity 0.3s;
+}
+.stage[data-phase='testing'] .spot { opacity: 1; }
+
+/* ---------- Game: tray and test results ---------- */
+
+.tray { position: absolute; top: 546px; transition: opacity 0.3s, transform 0.4s var(--ease); }
+.results {
+  position: absolute; left: 30px; top: 546px; width: 970px; height: 146px;
+  opacity: 0; transform: translateY(30px); pointer-events: none;
+  transition: opacity 0.3s, transform 0.4s var(--ease);
+}
+.results-note {
+  position: absolute; left: 34px; top: -22px;
+  padding: 6px 18px 3px; border: 4px solid var(--ink); border-radius: 999px; background: var(--white);
+  font-size: 20px; font-weight: 800; white-space: nowrap;
+}
+.stage[data-phase='testing'] .tray, .stage[data-phase='tested'] .tray { opacity: 0; transform: translateY(30px); }
+.stage[data-phase='testing'] .results, .stage[data-phase='tested'] .results { opacity: 1; transform: none; }
+
+.actions { position: absolute; left: 1014px; top: 552px; width: 246px; height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.actions .btn { width: 100%; padding-left: 10px; padding-right: 10px; }
+.actions .btn-test { font-family: var(--display); font-weight: 400; font-size: 32px; padding-top: 16px; padding-bottom: 12px; }
+.actions .btn.ready { animation: breathe 1.1s ease-in-out infinite; }
+
+/* ---------- Game: snacks ---------- */
+
+.snacks { position: absolute; inset: 0; pointer-events: none; }
+.snack {
+  position: absolute; left: 0; top: 0; width: 116px; height: 116px; margin: -58px 0 0 -58px;
+  padding: 0; border: 0; background: none; border-radius: 50%;
+  transform: translate(var(--x), var(--y)) scale(var(--s, 1));
+  transition: transform 0.42s var(--spring);
+  pointer-events: none; touch-action: none;
+}
+.snack { transition: transform 0.42s var(--spring), opacity 0.25s; }
+/* Snacks left in the tray step aside while Momo is being tested. */
+.stage[data-phase='testing'] .snack[data-where='tray'], .stage[data-phase='tested'] .snack[data-where='tray'] { opacity: 0; }
+.snack.live { pointer-events: auto; cursor: grab; }
+.snack.live:hover { --s: 1.08; }
+.snack.drag { transition: none; --s: 1.2; cursor: grabbing; z-index: 900 !important; }
+.snack.picked { --s: 1.2; }
+.snack.picked::before, .snack.glow::before {
+  content: ''; position: absolute; inset: 12px; border-radius: 50%;
+  border: 4px dashed var(--pink-deep);
+  animation: turn 6s linear infinite;
+}
+.snack.glow::before { border-style: solid; border-color: var(--pink); box-shadow: 0 0 0 6px rgba(255, 111, 163, 0.35); animation: breathe 0.9s ease-in-out infinite; }
+.snack.wiggle .snack-svg { animation: wiggle 0.5s ease-in-out 3; }
+.snack.arrive .snack-svg { animation: pop 0.5s var(--spring) backwards; }
+.snack.ghost { opacity: 0; }
+.snack-svg .twinkle { transform-box: fill-box; transform-origin: 50% 50%; animation: twinkle 1.6s ease-in-out infinite; }
+.snack-svg .mark-yum g:nth-child(2) .twinkle { animation-delay: -0.5s; }
+.snack-svg .mark-yum g:nth-child(3) .twinkle { animation-delay: -1s; }
+.snack-svg .waft { animation: waft 1.8s ease-in-out infinite; }
+.snack-svg .waft:nth-child(2) { animation-delay: -0.9s; }
+.snack.reveal .mark { transform-box: fill-box; transform-origin: 50% 100%; animation: pop 0.45s var(--spring); }
+
+.badge {
+  position: absolute; right: 8px; bottom: 8px; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border: 4px solid var(--ink); border-radius: 50%; background: var(--white);
+  animation: pop 0.4s var(--spring);
+}
+.badge.right { background: var(--pink); }
+
+/* ---------- Game: Momo's thinking lines ---------- */
+
+.lines { position: absolute; inset: 0; width: 1280px; height: 720px; pointer-events: none; }
+.lines .scan { stroke: var(--ink); stroke-opacity: 0.4; stroke-width: 3; stroke-dasharray: 2 10; stroke-linecap: round; animation: appear 0.25s both; }
+.lines .match-back { stroke: var(--ink); stroke-width: 12; stroke-linecap: round; animation: appear 0.2s both; }
+.lines .match { stroke: var(--pink); stroke-width: 6; stroke-linecap: round; animation: appear 0.2s both; }
+.lines .ring { fill: none; stroke: var(--pink-deep); stroke-width: 5; transform-box: fill-box; transform-origin: 50% 50%; animation: pop 0.4s var(--spring); }
+
+/* ---------- Game: pointing hand, level banner ---------- */
+
+.hand { position: absolute; left: 0; top: 0; width: 84px; height: 98px; margin: -14px 0 0 -22px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 950; }
+.hand.show { opacity: 1; }
+
+.banner {
+  position: absolute; left: 0; right: 0; top: 250px; text-align: center;
+  opacity: 0; transform: scale(0.7); pointer-events: none;
+  transition: opacity 0.3s, transform 0.45s var(--spring);
+  z-index: 960;
+}
+.banner.show { opacity: 1; transform: none; }
+.banner-inner {
+  display: inline-block; padding: 26px 64px 20px;
+  border: 5px solid var(--ink); border-radius: 44px; background: var(--white);
+  box-shadow: 0 12px 0 var(--soft);
+}
+.banner-level { font-size: 26px; font-weight: 800; }
+.banner-name { font-family: var(--display); font-weight: 400; font-size: 72px; line-height: 1.05; }
+
+/* ---------- Cards that pop up ---------- */
+
+.veil {
+  position: absolute; inset: -400px; padding: 400px; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(39, 36, 92, 0.5);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.veil.show { opacity: 1; pointer-events: auto; }
+.card {
+  position: relative; width: 700px; padding: 34px 44px 38px;
+  border: 5px solid var(--ink); border-radius: 44px; background: var(--white);
+  text-align: center;
+  transform: scale(0.8); transition: transform 0.35s var(--spring);
+}
+.veil.show .card { transform: none; }
+.card-momo { width: 170px; height: 170px; margin: -120px auto 0; }
+.card-stars { display: flex; justify-content: center; gap: 6px; margin-top: 2px; }
+.card-stars svg { animation: pop 0.5s var(--spring) backwards; }
+.card-stars svg:nth-child(2) { animation-delay: 0.18s; }
+.card-stars svg:nth-child(3) { animation-delay: 0.36s; }
+.card-title { margin-top: 10px; font-family: var(--display); font-weight: 400; font-size: 48px; line-height: 1.1; }
+.card-found { margin: 18px 0 0; padding: 16px 22px 13px; border-radius: 26px; background: var(--shade); font-size: 22px; line-height: 1.35; font-weight: 500; text-wrap: balance; }
+.card-found b { display: block; font-size: 25px; font-weight: 800; }
+.card-tip { margin-top: 14px; font-size: 20px; font-weight: 500; }
+.card-buttons { margin-top: 26px; display: flex; justify-content: center; gap: 18px; }
+
+.card-help { width: 1180px; padding: 30px 40px 34px; text-align: left; }
+.card-help .title { font-size: 48px; }
+.card-help .steps { position: static; width: auto; margin-top: 34px; }
+.card-help .round-close { position: absolute; right: 26px; top: 24px; }
+
+.veil-video .video-frame { position: relative; width: 1040px; border: 5px solid var(--ink); border-radius: 34px; background: var(--ink); box-shadow: 0 12px 0 rgba(39, 36, 92, 0.4); }
+.veil-video video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 28px; background: var(--ink); }
+.veil-video .round-close { position: absolute; right: -22px; top: -22px; }
+
+/* ---------- The end ---------- */
+
+.final-momo { position: absolute; left: 84px; top: 214px; width: 340px; height: 340px; }
+.final-momo .momo-body { transform-box: fill-box; transform-origin: 50% 100%; animation: cheer 0.9s var(--ease) infinite; }
+.final-words { position: absolute; left: 60px; top: 50px; width: 420px; text-align: center; }
+.final-words .title { font-size: 52px; line-height: 1.08; }
+.final-play { position: absolute; left: 60px; top: 590px; width: 420px; display: flex; justify-content: center; }
+.report {
+  position: absolute; left: 520px; top: 50%; width: 700px; padding: 28px 38px 30px; transform: translateY(-50%);
+  border: 5px solid var(--ink); border-radius: 44px; background: var(--white);
+  box-shadow: 0 12px 0 var(--soft);
+}
+.report-head { display: flex; align-items: baseline; justify-content: space-between; }
+.report-title { font-family: var(--display); font-weight: 400; font-size: 38px; line-height: 1; }
+.report-score { font-size: 22px; font-weight: 800; }
+.report-score b { font-size: 40px; font-weight: 800; margin-left: 10px; }
+.report-rows { list-style: none; margin-top: 18px; display: grid; gap: 10px; }
+.report-row { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 16px; padding: 11px 18px 8px 14px; border-radius: 24px; background: var(--shade); }
+.report-row .hud-number { width: 48px; height: 48px; font-size: 27px; }
+.report-found { font-size: 22px; line-height: 1.22; font-weight: 800; }
+.report-name { display: block; font-size: 17px; font-weight: 500; }
+.report-stars { display: flex; gap: 1px; }
+.report-say { margin-top: 18px; font-size: 23px; line-height: 1.32; font-weight: 800; }
+.report-real { margin-top: 12px; padding-top: 12px; border-top: 4px dashed var(--shade); font-size: 20px; line-height: 1.36; font-weight: 500; }
+
+/* ---------- Movement ---------- */
+
+@keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes turn { to { transform: rotate(360deg); } }
+@keyframes bob { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.985, 1.025); } }
+@keyframes bob-shadow { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.96); } }
+@keyframes hop { 0% { transform: translateY(0); } 40% { transform: translateY(-26px); } 100% { transform: translateY(0); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-9px); } 45% { transform: translateX(8px); } 70% { transform: translateX(-5px); } }
+@keyframes cheer { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(0.94, 1.09) translateY(-14px); } 60% { transform: scale(1.05, 0.95); } }
+@keyframes spark { from { transform: scale(1); fill: var(--pink); } to { transform: scale(1.35); fill: #fff; } }
+@keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0); } 50% { transform: scale(0.62) rotate(18deg); } }
+@keyframes waft { 0%, 100% { transform: translateY(1px); } 50% { transform: translateY(-4px); } }
+@keyframes demo-drag { 0%, 12% { transform: translate(0, 0); } 62%, 100% { transform: translate(78px, 54px); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+
+.momo-spark { transform-box: fill-box; transform-origin: 50% 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; }
+  .snack { transition-duration: 0.12s; }
+}
