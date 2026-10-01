@@ -18,11 +18,15 @@
       style.setProperty('--pink', c.pink);
       style.setProperty('--pink-deep', c.pinkDeep);
       style.setProperty('--stink', c.stink);
+      style.setProperty('--gold', c.gold);
+      style.setProperty('--leaf', c.leaf);
+      style.setProperty('--meadow', c.meadow);
     })(MomoTokens.color);
   </script>
 </head>
 <body>
   <main id="stage" class="stage" data-screen="start" aria-label="Momo Learns to Munch">
+    <div class="blanket" id="blanket" aria-hidden="true"></div>
 
     <!-- Start screen -->
     <section class="screen screen-start" id="screen-start">
@@ -31,7 +35,7 @@
         <p class="tagline">Teach a tiny AI which snacks are yum and which are yuck.</p>
         <div class="start-buttons">
           <button class="btn btn-primary btn-big" id="btn-play">Play</button>
-          <button class="btn" id="btn-video"><span class="btn-icon" data-icon="play"></span>Meet Momo</button>
+          <button class="btn" id="btn-video"><span class="btn-icon" data-icon="play" data-size="26"></span>Meet Momo</button>
         </div>
       </div>
       <div class="start-art" id="start-art" aria-hidden="true"></div>
@@ -50,24 +54,22 @@
     <section class="screen screen-play" id="screen-play">
       <header class="hud">
         <div class="hud-level"><span class="hud-number" id="hud-number">1</span><span class="hud-name" id="hud-name"></span></div>
-        <div class="hud-stars" id="hud-stars" role="img" aria-label="Stars"></div>
-        <div class="hud-score"><span class="hud-score-word">Score</span><span class="hud-score-number" id="hud-score">0</span></div>
+        <div class="hud-meter">
+          <div class="hud-stars" id="hud-stars" role="img" aria-label="Stars"></div>
+          <div class="hud-score"><span class="hud-score-word">Score</span><span class="hud-score-number" id="hud-score">0</span></div>
+        </div>
         <div class="hud-tools">
           <button class="round" id="btn-sound" aria-label="Sound on or off"></button>
           <button class="round" id="btn-help" aria-label="How to play"></button>
         </div>
       </header>
 
-      <button class="plate plate-yum" id="plate-yum" aria-label="Yum plate">
-        <span class="plate-name"><span data-icon="heart"></span>Yum!</span>
-      </button>
-      <button class="plate plate-yuck" id="plate-yuck" aria-label="Yuck plate">
-        <span class="plate-name"><span data-icon="stink"></span>Yuck!</span>
-      </button>
+      <button class="plate plate-yum" id="plate-yum" aria-label="Yum plate"></button>
+      <button class="plate plate-yuck" id="plate-yuck" aria-label="Yuck plate"></button>
 
       <div class="spot" id="spot" aria-hidden="true"></div>
       <div class="momo" id="momo" aria-hidden="true"></div>
-      <div class="bubble" id="bubble" role="status" aria-live="polite"><span id="bubble-text"></span></div>
+      <div class="bubble" id="bubble" role="status" aria-live="polite"><span id="bubble-text"></span><span class="bubble-tail" id="bubble-tail"></span></div>
 
       <div class="tray" id="tray" aria-hidden="true"></div>
       <div class="results" id="results">
@@ -89,10 +91,12 @@
     <!-- The end -->
     <section class="screen screen-final" id="screen-final"></section>
 
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
+
     <!-- Intro video -->
     <div class="veil veil-video" id="video-veil">
       <div class="video-frame">
-        <video id="video" src="media/meet-momo.mp4" controls playsinline preload="metadata"></video>
+        <video id="video" src="media/meet-momo.mp4" poster="media/meet-momo.jpg" controls playsinline preload="none"></video>
         <button class="round round-close" id="btn-video-close" aria-label="Close the video"></button>
       </div>
     </div>

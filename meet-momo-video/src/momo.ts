@@ -9,41 +9,74 @@ declare const require: (id: string) => unknown;
 
 export type SnackData = { color: string; size: number; spike: number };
 export type Mark = "yum" | "yuck" | null;
-export type Mood = "idle" | "happy" | "cheer" | "yum" | "yuck" | "think" | "oops" | "wow" | "blink";
+export type Mood =
+  | "idle"
+  | "blink"
+  | "happy"
+  | "cheer"
+  | "yum"
+  | "aah"
+  | "chew"
+  | "yuck"
+  | "bleh"
+  | "think"
+  | "oops"
+  | "sad"
+  | "wow";
+
+export type MomoOptions = {
+  look?: [number, number];
+  shadow?: boolean;
+  grow?: number; // how much the sprout has grown, 0 to 3
+  arms?: [number, number]; // how far each arm is lifted, in degrees
+  sway?: number; // how far the sprout leans, in degrees
+};
+
+type Css = { backgroundColor: string; backgroundImage: string; backgroundSize: string };
 
 type ArtApi = {
-  snack(data: SnackData, mark?: Mark): string;
-  momo(mood: Mood, size: number, options?: { look?: [number, number]; shadow?: boolean }): string;
-  plate(width: number, height: number): string;
-  tray(width: number, height: number): string;
+  snack(data: SnackData, mark?: Mark, phase?: number): string;
+  markOnly(data: SnackData, mark: Mark, phase?: number): string;
+  momo(mood: Mood, size: number, options?: MomoOptions): string;
+  arms(mood: Mood): [number, number];
+  plate(width: number, height: number, kind?: "yum" | "yuck"): string;
+  flag(kind: "yum" | "yuck", size?: number): string;
   logo(): string;
+  words(text: string, size: number, options?: { id?: string; pop?: (letter: number) => number }): string;
   computer(width: number): string;
   hand(size: number): string;
+  tail(size: number): string;
+  fly(size: number): string;
   icon(name: string, size: number): string;
-  cloth(cell: number): { backgroundColor: string; backgroundImage: string; backgroundSize: string };
+  smooth(points: number[][], closed: boolean): string;
+  cloth(cell: number): Css;
+  meadow(scale: number): Css;
 };
 
 type TokensApi = {
-  color: { ink: string; cloth: string; white: string; shade: string; pink: string; pinkDeep: string; stink: string };
+  color: {
+    ink: string;
+    white: string;
+    shade: string;
+    pink: string;
+    pinkDeep: string;
+    gold: string;
+    snack: { blue: string; green: string; tangerine: string; purple: string };
+  };
   font: { display: string; body: string };
 };
 
 export const Tokens = require("../../momo-learns-to-munch/js/tokens.js") as TokensApi;
 export const Art = require("../../momo-learns-to-munch/js/art.js") as ArtApi;
+export const Lines = require("./lines.json") as Record<
+  "hi" | "snacks" | "smell" | "show" | "learning" | "turn" | "alike" | "teach",
+  string
+>;
 
 export const INK = Tokens.color.ink;
 export const WHITE = Tokens.color.white;
 export const PINK = Tokens.color.pink;
-export const SOFT = "rgba(39, 36, 92, 0.16)";
-
-// The snacks that appear in the video.
-export const BERRY: SnackData = { color: "blue", size: 0.55, spike: 0 };
-export const BIG_BERRY: SnackData = { color: "blue", size: 0.85, spike: 0 };
-export const SMALL_BERRY: SnackData = { color: "blue", size: 0.35, spike: 0 };
-export const BURR: SnackData = { color: "tangerine", size: 0.6, spike: 0.85 };
-export const SMALL_BURR: SnackData = { color: "tangerine", size: 0.35, spike: 0.9 };
-export const GREEN_BERRY: SnackData = { color: "green", size: 0.5, spike: 0.05 };
-export const PURPLE_BURR: SnackData = { color: "purple", size: 0.5, spike: 0.6 };
+export const SOFT = "rgba(59, 42, 79, 0.16)";
 
 const font = (family: string, file: string, weight: string) =>
   loadFont({ family, url: staticFile("fonts/" + file), weight });

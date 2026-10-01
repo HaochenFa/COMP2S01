@@ -12,5 +12,6 @@ Config.setRspack(true);
 Config.setVideoImageFormat("png");
 Config.setPixelFormat("yuv420p");
 Config.setCodec("h264");
-Config.setCrf(18);
+// The paper grain is costly to store; 24 keeps the file around 11 MB and still looks clean.
+Config.setCrf(24);
 Config.setOverwriteOutput(true);

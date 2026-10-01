@@ -35,9 +35,11 @@ Inside the game folder:
 | `js/sound.js` | Every sound. |
 | `js/tokens.js` | The colours, line weights and fonts, in one place. |
 | `css/game.css` | How everything is laid out. |
-| `media/meet-momo.mp4` | The intro video. |
+| `img/grain.png` | Paper grain laid over the whole game. Made by `tools/make-grain.js`. |
+| `media/meet-momo.mp4` | The intro video. `meet-momo.jpg` is the picture shown before it plays. |
 | `tools/check-levels.js` | Tests the levels without opening the game. |
 | `tools/art-sheet.html` | Shows every drawing on one page. |
+| `tools/make-grain.js` | Makes `img/grain.png`. |
 
 ## How the game meets the brief
 
@@ -45,10 +47,10 @@ Inside the game folder:
 |---|---|
 | Educational, for Grade 5 or 6, about AI literacy | Three discoveries about machine learning, one per level |
 | A clear start screen | Title, Play button and the "Meet Momo" video |
-| Instructions | The "How to play" screen, the `?` button, and a pointing hand on level 1 |
+| Instructions | The "How to play" screen, the `?` button, a pointing hand on level 1, and the "Meet Momo" video |
 | Multiple stages | Three levels: First bites, Look-alikes, Lopsided lunchbox |
-| A scoring system | 10 points for each snack Momo guesses right, and up to 3 stars per level |
-| Hints for incorrect answers | Momo says what confused it, then the most helpful snacks glow |
+| A scoring system | 10 points for each snack Momo guesses right, and up to 3 stars per level. Momo's sprout grows with each level it learns |
+| Hints for incorrect answers | Momo says why it guessed wrong ("It is green, like this one…") and what confused it, then the most helpful snacks glow |
 | Difficulty that rises over three levels | Different colours, then look-alikes, then lopsided examples |
 | A final screen with feedback | "Momo's report card" with stars, score and what was discovered |
 | Simple "AI logic" | Momo really learns: it compares each new snack with the examples it was shown |
@@ -60,6 +62,10 @@ example that looks most alike, by colour, size and spikiness, and copies that
 example's plate. This is a real method called "nearest neighbour". Nothing is
 scripted: if the player puts snacks on the wrong plates, Momo learns the wrong
 thing.
+
+The player can smell the snacks (little hearts mean yum, stink lines mean
+yuck) but Momo can only look. When Momo guesses "yum" it eats the snack, so a
+wrong guess is easy to see: Momo spits a yucky snack straight back out.
 
 ## Change or add a level
 
@@ -89,5 +95,5 @@ npm run render
 ## Credits
 
 The fonts are Bagel Fat One and Grandstander, both free under the SIL Open
-Font License (copies are in `momo-learns-to-munch/fonts/`). All drawings and
-sounds are made by the code in this folder.
+Font License (copies are in `momo-learns-to-munch/fonts/`). All drawings,
+sounds and the paper grain are made by the code in this folder.

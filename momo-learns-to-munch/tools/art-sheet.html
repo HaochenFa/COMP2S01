@@ -1,25 +1,49 @@
 <!doctype html><meta charset="utf-8"><title>Momo art sheet</title>
+<!-- Every drawing on one page. Open this after changing js/art.js or js/tokens.js. -->
 <link rel="stylesheet" href="../css/fonts.css">
 <style>
-body{margin:0;padding:30px;font-family:'Grandstander';color:#27245C;font-weight:700}
-h1{font-family:'Bagel Fat One';font-weight:400;font-size:64px;margin:0 0 10px;line-height:1}
-.row{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin:14px 0}
+body{margin:0;padding:26px 30px 60px;font-family:'Grandstander';font-weight:700}
+h2{font-family:'Bagel Fat One';font-weight:400;font-size:30px;margin:26px 0 4px;line-height:1}
+.row{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin:10px 0}
 .cell{text-align:center;font-size:14px}
+.white{background:#FFFCF2;border-radius:24px;padding:14px 18px}
+svg{overflow:visible;display:block;margin:0 auto}
 </style>
 <body>
-<h1>Momo Learns to Munch</h1>
 <div id="out"></div>
 <script src="../js/tokens.js"></script><script src="../js/art.js"></script>
 <script>
 var A=MomoArt,T=MomoTokens,o=document.getElementById('out');
-Object.assign(document.body.style,A.cloth(48));
-function row(html){var d=document.createElement('div');d.className='row';d.innerHTML=html;o.appendChild(d);}
-var moods=['idle','happy','cheer','yum','yuck','think','oops','wow','blink'];
-row(moods.map(function(m){return '<div class="cell">'+A.momo(m,170)+'<br>'+m+'</div>';}).join(''));
-var spikes=[0,0.12,0.3,0.38,0.57,0.62,0.8,0.9];
+Object.assign(document.body.style,A.cloth(40));
+document.body.style.color=T.color.ink;
+function head(text){var h=document.createElement('h2');h.textContent=text;o.appendChild(h);}
+function row(html,cls){var d=document.createElement('div');d.className='row'+(cls?' '+cls:'');d.innerHTML=html;o.appendChild(d);}
+function cell(html,label){return '<div class="cell">'+html+(label?'<br>'+label:'')+'</div>';}
+
+row(A.logo()+A.words('Meet',150,{id:'a'})+A.words('Momo!',150,{id:'b'}));
+
+head('Momo');
+var moods=['idle','blink','happy','cheer','yum','aah','chew','yuck','bleh','think','oops','sad','wow'];
+row(moods.map(function(m){return cell(A.momo(m,190),m);}).join(''));
+row([0,1,2,3].map(function(g){return cell(A.momo('idle',190,{grow:g}),'grow '+g);}).join('')+
+  cell(A.momo('idle',190,{look:[-6,2]}),'look left')+cell(A.momo('idle',190,{look:[6,-3]}),'look up right')+cell(A.momo('idle',64,{shadow:false}),'small')+cell(A.momo('cheer',340,{grow:3}),'big'));
+
+head('Snacks');
+var spikes=[0,0.05,0.12,0.3,0.38,0.57,0.62,0.8,0.9];
 ['blue','green','tangerine','purple'].forEach(function(c,ci){
-  row(spikes.map(function(s,i){return '<div class="cell">'+A.snack({color:c,size:[0.1,0.4,0.7,1][(i+ci)%4],spike:s},i%3==0?'yum':(i%3==1?'yuck':null))+'<br>'+s+'</div>';}).join(''));
+  row(spikes.map(function(s,i){return cell(A.snack({color:c,size:[0.1,0.4,0.7,1][(i+ci)%4],spike:s},i%3==0?'yum':(i%3==1?'yuck':null)),String(s));}).join(''));
 });
-row(A.plate(430,240)+A.tray(500,130)+A.computer(260)+A.hand(90));
-row(['heart','star','star-empty','stink','sparkle','check','cross','play','sound-on','sound-off','help','fast','close'].map(function(i){return A.icon(i,44);}).join(''));
+row(['blue','green','tangerine','purple'].map(function(c){
+  return [0.1,0.5,1].map(function(z){return [0,0.5,0.9].map(function(s){return A.snack({color:c,size:z,spike:s},s<0.4?'yum':'yuck');}).join('');}).join('');
+}).join(''),'white');
+
+head('On the blanket');
+row(A.plate(430,240,'yum')+A.plate(430,240,'yuck')+A.flag('yum')+A.flag('yuck'));
+row(A.tray(700,146)+A.tray(420,212));
+row(A.tray(900,146,"lunchbox"));
+row(A.strip(900,146)+A.hand(90)+A.fly(40)+A.computer(240));
+row(A.bunting(900));
+
+head('Signs');
+row(['heart','star','star-empty','stink','check','cross','play','sound-on','sound-off','help','fast','close','again'].map(function(i){return cell(A.icon(i,52),i);}).join(''));
 </script>

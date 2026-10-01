@@ -10,24 +10,34 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   return {
     color: {
-      ink: '#27245C',        // every outline and every word
-      cloth: '#FFD34E',      // the picnic cloth
-      clothLight: '#FFE283', // lighter cloth check
-      clothDeep: '#FFC229',  // where two cloth stripes cross
-      white: '#FFFDF6',      // Momo, plates, speech bubbles
-      shade: '#E6E1FB',      // soft shading on white things
-      pink: '#FF6FA3',       // Momo's cheeks and spark, hearts, sparkles
-      pinkDeep: '#E84F88',
-      stink: '#8FA02C',      // stink lines on yucky snacks
+      ink: '#3B2A4F',        // every outline and every word: a soft aubergine, like a brush pen
+      cloth: '#FFD460',      // the picnic blanket
+      clothLight: '#FFE490', // its lighter stripes
+      clothDeep: '#FFC53F',  // where two stripes cross
+      white: '#FFFCF2',      // Momo, plates, paper
+      shade: '#F2E3C6',      // warm shading on white things
+      pink: '#FF8AA8',       // hearts, cheeks, the Yum plate, buttons
+      pinkDeep: '#EC5480',
+      stink: '#9AA93A',      // stink lines, the Yuck plate
+      stinkDeep: '#77852A',
+      leaf: '#84C94F',       // Momo's sprout, the meadow
+      leafDeep: '#5DA53B',
+      meadow: '#A9DA70',
+      gold: '#FFB530',       // stars
+      basket: '#E7B36C',     // the snack basket
+      basketDeep: '#C98B45',
+      box: '#8ADBC8',        // the lunchbox
+      boxDeep: '#57BCA7',
       snack: {
-        blue: '#3F8CFF',
-        green: '#38C172',
-        tangerine: '#FF6A3C',
-        purple: '#9A6BFF'
+        blue: '#4A7BF2',      // blueberry
+        green: '#3FBF6F',     // green apple
+        tangerine: '#FF7A3C', // tangerine
+        purple: '#A463E8'     // grape
       }
     },
-    // Line weights, in stage pixels (the stage is 1280 x 720).
-    stroke: { thin: 3, base: 4, bold: 5 },
+    // Line weight, in stage pixels (the stage is 1280 x 720). Lines are drawn
+    // thin on the upper left and heavy on the lower right, like a brush pen.
+    stroke: { thin: 2.4, base: 3.1, bold: 3.6 },
     font: {
       display: "'Bagel Fat One', 'Grandstander', system-ui, sans-serif",
       body: "'Grandstander', 'Trebuchet MS', system-ui, sans-serif"

@@ -8,12 +8,13 @@
  *   color   'blue', 'green', 'tangerine' or 'purple'
  *   size    0 (small) to 1 (big)
  *   spike   0 (smooth) to 1 (very spiky)
- *   yum     true or false, the secret (shown to the player as sparkles or stink lines)
+ *   yum     true or false, the secret (shown to the player as little hearts or stink lines)
  *
  * Each level has:
  *   tray    snacks the player can show Momo straight away
  *   later   (optional) more snacks that arrive after Momo's first test
  *   stuck   (optional) what Momo says when it fails before those snacks arrive
+ *   box     (optional) 'lunchbox' draws the first tray as a lunchbox instead of a basket
  *   test    new snacks Momo has to guess by itself
  */
 (function (root, factory) {
@@ -75,6 +76,7 @@
       id: 'lopsided-lunchbox',
       name: 'Lopsided lunchbox',
       hello: 'A lunchbox! Show me what is inside.',
+      box: 'lunchbox',
       tray: [
         s('blue', 0.25, 0.00, YUM), s('green', 0.30, 0.75, YUCK),
         s('blue', 0.65, 0.05, YUM), s('green', 0.50, 0.85, YUCK),

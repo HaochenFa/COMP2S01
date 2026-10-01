@@ -47,6 +47,11 @@
       [NOTE.C5, NOTE.E5, NOTE.G5].forEach(function (f, i) { note(o, i * 0.11, f, 0.16, 0.26, { decay: 16 }); });
       return o;
     },
+    munch: function () {
+      var o = blank(0.5);
+      [0, 0.14, 0.28].forEach(function (at, i) { note(o, at, 210 - i * 14, 0.1, 0.42, { slideTo: 120, decay: 30, bright: 0.4 }); });
+      return o;
+    },
     yum: function () {
       var o = blank(0.7);
       [NOTE.E5, NOTE.G5, NOTE.C6].forEach(function (f, i) { note(o, i * 0.08, f, 0.36, 0.36, { decay: 9 }); });
@@ -141,19 +146,29 @@
     start(toBuffer(name, RECIPES[name]()), delay);
   }
 
-  // Momo "talks" in chirps, one per syllable or so.
-  function talk(text) {
-    if (muted || !ready()) return;
+  // Momo "talks" in chirps, one per syllable or so. These are the pitches
+  // for one line of speech; the same line always sounds the same.
+  var CHIRP_GAP = 0.085;
+  function talkPitches(text) {
     var count = Math.max(2, Math.min(9, Math.round(String(text).length / 7)));
-    var seed = String(text).length;
+    var seed = String(text).length, out = [];
     for (var i = 0; i < count; i++) {
       seed = (seed * 7 + 3) % 11;
-      start(toBuffer('chirp' + (seed % VOICE.length), chirp(seed)), i * 0.085, 0.55);
+      out.push(seed);
     }
+    return out;
+  }
+
+  function talk(text) {
+    if (muted || !ready()) return;
+    talkPitches(text).forEach(function (pitch, i) {
+      start(toBuffer('chirp' + (pitch % VOICE.length), chirp(pitch)), i * CHIRP_GAP, 0.55);
+    });
   }
 
   return {
     RATE: RATE, names: Object.keys(RECIPES), render: render, chirp: chirp, tune: tune, VOICE: VOICE,
+    talkPitches: talkPitches, CHIRP_GAP: CHIRP_GAP,
     play: play, talk: talk, unlock: ready,
     mute: function (on) { muted = !!on; },
     isMuted: function () { return muted; }

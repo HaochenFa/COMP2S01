@@ -26,7 +26,8 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "render": "remotion render MeetMomo ../momo-learns-to-munch/media/meet-momo.mp4",
+    "render": "remotion render MeetMomo ../momo-learns-to-munch/media/meet-momo.mp4 && npm run poster",
+    "poster": "remotion still MeetMomo ../momo-learns-to-munch/media/meet-momo.jpg --frame=96 --image-format=jpeg --jpeg-quality=86 --scale=0.6667",
     "assets": "node scripts/prepare-assets.cjs"
   },
   "sideEffects": [
