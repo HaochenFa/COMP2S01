@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Math Meteor Defense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1d1535; --paper: #fffaf0; --cream: #fff1d6; --sun: #ffc93c; --coral: #ff6b5b;
+  --teal: #2ec4b6; --plum: #2d1f55; --muted: #7a6d93; --line: #e8dcc2;
+  --font: "Fredoka", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh; font-family: var(--font); color: var(--ink);
+  background: var(--plum) radial-gradient(rgba(255,255,255,.08) 2px, transparent 2.5px) 0 0 / 24px 24px;
+  display: flex; justify-content: center;
+}
+button, input { font-family: inherit; color: inherit; }
+button { cursor: pointer; }
+.page { width: min(980px, 100%); padding: 18px 16px 10px; }
+
+/* ---- the console frame ---- */
+.console { background: var(--cream); border: 4px solid var(--ink); border-radius: 28px; box-shadow: 0 10px 0 var(--ink); padding: 12px; }
+.hud { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pill { height: 46px; display: flex; align-items: center; background: #fff; border: 3px solid var(--ink); border-radius: 999px; box-shadow: 0 3px 0 var(--ink); padding: 0 14px; font-weight: 600; }
+.hearts { gap: 3px; padding: 0 10px; }
+.hearts svg { width: 26px; height: 24px; display: block; }
+.hearts svg.lost { opacity: .35; }
+.hearts svg.pop { animation: heartPop .5s; }
+@keyframes heartPop { 40% { transform: scale(1.5) rotate(-12deg); } }
+.wave-pill { flex: 1; gap: 12px; min-width: 0; font-size: 18px; white-space: nowrap; }
+.bar { flex: 1; height: 16px; border: 3px solid var(--ink); border-radius: 99px; background: #efe3c8; overflow: hidden; min-width: 40px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--teal); border-right: 3px solid var(--ink); transition: width .3s; }
+.score-pill { gap: 8px; font-size: 22px; min-width: 104px; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.combo { display: none; background: var(--sun); border: 2.5px solid var(--ink); border-radius: 9px; padding: 0 6px; font-size: 15px; line-height: 22px; transform: rotate(-8deg); }
+.combo.show { display: inline-block; }
+.score-pill.bump { animation: bump .25s; }
+@keyframes bump { 50% { transform: scale(1.1); } }
+.round-btn { width: 46px; height: 46px; flex: none; border-radius: 50%; background: #fff; border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); display: grid; place-items: center; padding: 0; }
+.round-btn:active { transform: translateY(3px); box-shadow: none; }
+
+.stage { position: relative; height: clamp(340px, calc(100vh - 270px), 600px); border: 4px solid var(--ink); border-radius: 18px; overflow: hidden; background: #241b5c; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.controls { display: flex; gap: 10px; margin-top: 12px; }
+#answer { flex: 1; min-width: 0; height: 66px; padding: 0 20px; font-size: 32px; font-weight: 600; border: 4px solid var(--ink); border-radius: 18px; background: #fff; box-shadow: 0 5px 0 var(--ink); outline: none; font-variant-numeric: tabular-nums; }
+#answer::placeholder { color: #c2b596; font-weight: 500; }
+#answer:focus { box-shadow: 0 5px 0 var(--ink), 0 0 0 5px rgba(46,196,182,.4); }
+#answer.wrong { background: #ffe1dc; animation: shake .35s; }
+#answer.right { background: #dcf7ef; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.zap { height: 66px; padding: 0 30px; font-size: 26px; font-weight: 700; background: var(--sun); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); letter-spacing: .5px; }
+.zap:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.feedback { text-align: center; font-weight: 500; font-size: 17px; min-height: 26px; margin-top: 10px; color: var(--muted); }
+.feedback.good { color: #1b8f7f; } .feedback.bad { color: #d6453a; }
+.keypad { display: none; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-top: 8px; }
+.keypad button { height: 54px; font-size: 24px; font-weight: 600; background: #fff; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 4px 0 var(--ink); touch-action: manipulation; }
+.keypad button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.keypad .go { background: var(--sun); }
+@media (pointer: coarse) { .keypad { display: grid; } .foot { display: none; } .feedback { min-height: 22px; font-size: 15px; } }
+.foot { text-align: center; color: rgba(255,241,214,.6); font-size: 14px; margin: 18px 0 6px; }
+
+/* ---- overlay cards ---- */
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 14px; background: rgba(29,21,53,.42); }
+.overlay.hidden { display: none; }
+.card { width: 100%; max-width: 470px; max-height: 100%; overflow: auto; text-align: center; background: var(--paper); border: 4px solid var(--ink); border-radius: 26px; box-shadow: 0 8px 0 var(--ink); padding: 22px 24px; animation: cardIn .35s cubic-bezier(.3,1.6,.5,1); }
+@keyframes cardIn { from { transform: scale(.8) rotate(-2deg); opacity: 0; } }
+.logo { font-weight: 700; line-height: .9; transform: rotate(-3deg); margin: 4px 0 12px; }
+.logo span { display: block; font-size: 50px; color: var(--sun); -webkit-text-stroke: 8px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink); }
+.logo span + span { color: var(--coral); }
+.logo small { display: inline-block; margin-top: 8px; font-size: 18px; background: var(--teal); color: #fff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 12px; transform: rotate(4deg); }
+.card h2 { font-size: 38px; margin: 0 0 4px; font-weight: 700; color: var(--sun); -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); }
+.card p { margin: 6px 0; font-size: 17px; line-height: 1.4; }
+.kicker { display: inline-block; font-weight: 600; font-size: 15px; background: var(--ink); color: var(--cream); border-radius: 8px; padding: 2px 10px; margin-bottom: 6px; }
+.muted { color: var(--muted); font-size: 15px !important; }
+.btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 24px; font-weight: 700; padding: 10px 34px; background: var(--sun); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 6px 0 var(--ink); }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--ink); }
+.btn.alt { background: #fff; font-size: 19px; padding: 8px 20px; }
+.btn small { font-size: 13px; font-weight: 500; opacity: .6; }
+.btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.section-label { font-weight: 600; font-size: 15px; margin: 16px 0 8px; }
+.waves { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.wave-badge { width: 46px; height: 46px; border-radius: 50%; font-size: 20px; font-weight: 700; background: #fff; border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); display: grid; place-items: center; padding: 0; }
+.wave-badge.sel { background: var(--teal); color: #fff; transform: translateY(-3px); box-shadow: 0 6px 0 var(--ink); }
+.wave-badge:disabled { background: #eee3cc; color: #b3a68b; box-shadow: none; border-color: #b3a68b; cursor: not-allowed; }
+.wave-desc { font-size: 15px; color: var(--muted); margin-top: 8px; min-height: 20px; }
+.opts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.seg { display: flex; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; }
+.seg button { border: 0; background: none; padding: 6px 12px; font-size: 15px; font-weight: 600; }
+.seg button + button { border-left: 3px solid var(--ink); }
+.seg button.on { background: var(--sun); }
+.toggle-btn { border: 3px solid var(--ink); border-radius: 12px; background: #fff; padding: 6px 12px; font-size: 15px; font-weight: 600; }
+.skill { position: relative; text-align: left; margin: 16px 0 4px; background: #2f5d50; color: #f4f1e6; border: 4px solid var(--ink); border-radius: 16px; padding: 18px 18px 14px; }
+.skill .tag { position: absolute; top: -14px; left: 14px; background: var(--coral); color: #fff; border: 3px solid var(--ink); border-radius: 9px; padding: 0 10px; font-weight: 700; font-size: 15px; transform: rotate(-4deg); }
+.skill h3 { margin: 2px 0 4px; font-size: 21px; font-weight: 600; }
+.skill p { margin: 4px 0; font-size: 16px; }
+.skill .ex { margin-top: 10px; font-size: 21px; font-weight: 500; border-top: 2px dashed rgba(244,241,230,.35); padding-top: 10px; }
+.cleared { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 8px 0 2px; }
+.cleared span { background: #fff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 10px; font-weight: 600; font-size: 15px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 6px; }
+.stats div { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 8px 6px; }
+.stats b { display: block; font-size: 28px; font-weight: 700; line-height: 1.1; }
+.stats span { font-size: 14px; color: var(--muted); }
+.best { display: inline-block; background: var(--teal); color: #fff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 12px; font-weight: 700; transform: rotate(-3deg); animation: bump .5s 3; }
+.missed { background: #fff; border: 3px dashed var(--line); border-radius: 14px; padding: 8px 10px; margin-top: 10px; font-size: 17px; }
+.missed b { color: #d6453a; }
+
+@media (max-width: 640px) {
+  .page { padding: 10px 10px 6px; }
+  .console { padding: 8px; border-radius: 22px; }
+  .hud { gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pill { height: 40px; padding: 0 10px; }
+  .hearts svg { width: 21px; height: 20px; }
+  .wave-pill { order: 5; flex-basis: 100%; height: 34px; font-size: 15px; gap: 8px; }
+  .score-pill { flex: 1; font-size: 20px; min-width: 0; }
+  .waves { gap: 4px; flex-wrap: nowrap; }
+  .wave-badge { width: 32px; height: 32px; font-size: 16px; border-width: 2.5px; }
+  .wave-badge svg { width: 12px; }
+  .btn { font-size: 21px; padding: 8px 24px; }
+  .card p { font-size: 15px; }
+  .section-label { margin-top: 10px; }
+  .opts { margin-top: 10px; }
+  .btn { margin-top: 12px; }
+  .round-btn { width: 40px; height: 40px; }
+  .stage { height: clamp(330px, calc(100vh - 360px), 520px); }
+  #answer, .zap { height: 56px; }
+  #answer { font-size: 26px; }
+  .zap { font-size: 21px; padding: 0 18px; }
+  .logo { margin: 0 0 8px; }
+  .logo span { font-size: 34px; -webkit-text-stroke-width: 6px; }
+  .logo small { font-size: 15px; margin-top: 6px; }
+  .card { padding: 18px 16px; }
+  .card h2 { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="console">
+    <div class="hud">
+      <div class="pill hearts" id="hearts" aria-label="Hearts"></div>
+      <div class="pill wave-pill"><span id="waveLabel">Wave 1</span><div class="bar"><i id="waveBar"></i></div></div>
+      <div class="pill score-pill" id="scorePill"><span class="combo" id="combo">×2</span><span id="score">0</span></div>
+      <button class="round-btn" id="pauseBtn" aria-label="Pause">
+        <svg width="16" height="18" viewBox="0 0 16 18"><rect x="1" y="1" width="5" height="16" rx="2" fill="#1d1535"/><rect x="10" y="1" width="5" height="16" rx="2" fill="#1d1535"/></svg>
+      </button>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="overlay" id="overlay"><div class="card" id="card"></div></div>
+    </div>
+    <div class="controls">
+      <input id="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="Type the answer" aria-label="Your answer">
+      <button class="zap" id="zapBtn">ZAP!</button>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <div class="feedback" id="feedback">Press Enter to zap the meteor with that answer.</div>
+  </div>
+  <p class="foot">Just start typing, no need to click. Esc pauses.</p>
+</div>
+
+<script>
+// ============ Waves: each one teaches one new skill ============
+const WAVES = [
+  { name: 'Warm-up', topics: ['mult'], tier: 0, count: 8, speed: 0.8, spawn: 3.4,
+    skill: { title: 'Times tables', text: 'Multiply the two numbers. Easy ones first!', ex: '4 × 6 = 24' } },
+  { name: 'Share it out', topics: ['div', 'div', 'mult'], tier: 0, count: 10, speed: 0.85, spawn: 3.2,
+    skill: { title: 'Division', text: 'Division undoes multiplication. Ask yourself: what times the small number makes the big one?', ex: '24 ÷ 6 = 4, because 6 × 4 = 24' } },
+  { name: 'Slice it up', topics: ['frac', 'frac', 'mult', 'div'], tier: 0, count: 10, speed: 0.9, spawn: 3.1,
+    skill: { title: 'Fraction of a number', text: 'To find 1/4 of something, split it into 4 equal parts.', ex: '1/4 of 20 = 20 ÷ 4 = 5' } },
+  { name: 'Point power', topics: ['dec', 'dec', 'frac', 'mult'], tier: 1, count: 10, speed: 0.95, spawn: 3.0,
+    skill: { title: 'Decimals', text: '0.5 means half and 0.1 means one tenth. Decimals can add up to whole numbers too.', ex: '0.5 × 14 = 7     2.6 + 1.4 = 4' } },
+  { name: 'Percent party', topics: ['pct', 'pct', 'dec', 'frac', 'div'], tier: 1, count: 11, speed: 1.0, spawn: 2.9,
+    skill: { title: 'Percents', text: '50% is half. 25% is a quarter. 10% is one tenth.', ex: '25% of 40 = 40 ÷ 4 = 10' } },
+  { name: 'Order up!', topics: ['ops', 'ops', 'mult', 'div', 'frac'], tier: 1, count: 11, speed: 1.0, spawn: 2.9,
+    skill: { title: 'Order of operations', text: 'Brackets first. Then × and ÷. Then + and −.', ex: '2 + 3 × 4 = 2 + 12 = 14' } },
+  { name: 'Meteor storm', topics: ['mult', 'div', 'frac', 'dec', 'pct', 'ops'], tier: 2, count: 12, speed: 1.1, spawn: 2.6,
+    skill: { title: 'Everything at once!', text: 'All your skills are mixed together now. After this, the storm keeps coming. How far can you go?', ex: '' } },
+];
+const TOPIC_NAMES = { mult: 'times tables', div: 'division', frac: 'fractions', dec: 'decimals', pct: 'percents', ops: 'order of operations' };
+
+function waveInfo(i) {
+  if (i < WAVES.length) return WAVES[i];
+  const last = WAVES[WAVES.length - 1], k = i - WAVES.length + 1;
+  return { ...last, name: `Meteor storm ${k + 1}`, count: last.count + k, speed: Math.min(1.8, last.speed + 0.08 * k), spawn: Math.max(1.7, last.spawn - 0.12 * k), skill: null };
+}
+
+// ============ Problems: friendly numbers, whole-number answers ============
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const d1 = x => (Math.round(x * 10) / 10).toString();
+
+const GEN = {
+  mult(t) {
+    const [a, b] = t === 0 ? [R(2, 5), R(2, 10)] : t === 1 ? [R(2, 10), R(2, 10)] : [R(3, 12), R(3, 12)];
+    return Math.random() < 0.5 ? { q: `${a} × ${b}`, a: a * b } : { q: `${b} × ${a}`, a: a * b };
+  },
+  div(t) {
+    const d = t === 0 ? R(2, 5) : t === 1 ? R(2, 10) : R(3, 12);
+    const q = t === 2 ? R(3, 12) : R(2, 10);
+    return { q: `${d * q} ÷ ${d}`, a: q };
+  },
+  frac(t) {
+    if (t === 0) { const d = pick([2, 3, 4, 5, 10]); const k = R(2, 10); return { q: `1/${d} of ${d * k}`, a: k }; }
+    const d = pick(t === 1 ? [2, 3, 4, 5, 10] : [3, 4, 5, 6, 8, 10]);
+    let n = R(1, d - 1);
+    while (gcd(n, d) !== 1) n = R(1, d - 1);
+    if (Math.random() < 0.65) { const k = R(2, Math.min(10, Math.floor((t === 1 ? 60 : 100) / d))); return { q: `${n}/${d} of ${d * k}`, a: n * k }; }
+    const m = R(2, t === 1 ? 5 : 8);
+    return { q: `${n}/${d} = ?/${d * m}`, a: n * m };
+  },
+  dec(t) {
+    const kind = pick(t === 2 ? ['half', 'tenth', 'add', 'quarter'] : ['half', 'tenth', 'add']);
+    if (kind === 'half') { const n = 2 * R(1, 10); return { q: `0.5 × ${n}`, a: n / 2 }; }
+    if (kind === 'tenth') { const n = 10 * R(1, 10); return { q: `0.1 × ${n}`, a: n / 10 }; }
+    if (kind === 'quarter') { const n = 4 * R(1, 10); return { q: `0.25 × ${n}`, a: n / 4 }; }
+    const T = R(2, t === 2 ? 12 : 8);
+    let a10; do { a10 = R(1, T * 10 - 1); } while (a10 % 10 === 0);
+    return { q: `${d1(a10 / 10)} + ${d1(T - a10 / 10)}`, a: T };
+  },
+  pct(t) {
+    const opts = t < 2 ? [[50, 2, 100], [10, 10, 200], [25, 4, 100], [100, 1, 50]] : [[50, 2, 100], [10, 10, 200], [25, 4, 100], [20, 5, 100], [75, 4, 80]];
+    const [p, step, max] = pick(opts);
+    const W = step * R(p === 100 ? 1 : 2, Math.floor(max / step));
+    return { q: `${p}% of ${W}`, a: p * W / 100 };
+  },
+  ops(t) {
+    const k = pick(t < 2 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3, 4, 5]);
+    if (k === 0) { const a = R(1, 10), b = R(2, 5), c = R(2, 5); return { q: `${a} + ${b} × ${c}`, a: a + b * c }; }
+    if (k === 1) { const a = R(1, 5), b = R(1, 5), c = R(2, 5); return { q: `(${a} + ${b}) × ${c}`, a: (a + b) * c }; }
+    if (k === 2) { const a = R(2, 6), b = R(2, 6), c = R(1, Math.min(9, a * b)); return { q: `${a} × ${b} − ${c}`, a: a * b - c }; }
+    if (k === 3) { const c = R(2, 5), q = R(2, 5), a = R(q + 1, q + 15); return { q: `${a} − ${c * q} ÷ ${c}`, a: a - q }; }
+    if (k === 4) { const a = R(2, 10); return { q: `${a}²`, a: a * a }; }
+    const a = R(2, 9), b = R(1, 20); return { q: `${a}² + ${b}`, a: a * a + b };
+  },
+};
+
+// ============ Setup ============
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+const answer = $('answer'), feedback = $('feedback'), overlay = $('overlay'), card = $('card');
+const INK = '#1d1535', PAPER = '#fffaf0', SUN = '#ffc93c', CORAL = '#ff6b5b', TEAL = '#2ec4b6';
+const FONT = '"Fredoka", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif';
+const isCoarse = matchMedia('(pointer: coarse)').matches;
+if (isCoarse) answer.readOnly = true; // on-screen keypad instead of the phone keyboard
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('mmd2-' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('mmd2-' + k, JSON.stringify(v)); } catch (e) {} },
+};
+const opts = { speed: store.get('speed', 1), sound: store.get('sound', true) };
+let best = store.get('best', { score: 0, wave: 0 });
+let unlocked = store.get('unlocked', 1);
+let menuWave = 0;
+
+// ============ Sound ============
+let actx = null;
+function tone(freq, dur = 0.12, type = 'square', vol = 0.05, slideTo = null, delay = 0) {
+  if (!opts.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  zap: () => { tone(700, 0.09, 'square', 0.04, 1400); tone(1050, 0.1, 'triangle', 0.04, null, 0.06); },
+  wrong: () => { tone(220, 0.1, 'triangle', 0.06); tone(170, 0.16, 'triangle', 0.06, null, 0.1); },
+  bonk: () => { tone(160, 0.3, 'sawtooth', 0.06, 50); tone(90, 0.3, 'square', 0.04, 40); },
+  clear: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.15, 'triangle', 0.06, null, i * 0.1)),
+  freeze: () => tone(1400, 0.45, 'sine', 0.05, 350),
+  over: () => [392, 330, 262].forEach((f, i) => tone(f, 0.25, 'triangle', 0.06, null, i * 0.18)),
+  click: () => tone(600, 0.05, 'triangle', 0.04),
+};
+
+// ============ Game state ============
+const BASE_FALL = 16, MAX_HEARTS = 5, MAX_ON_SCREEN = 5;
+let W = 0, H = 0, dpr = 1, groundBase = 0, groundY = 0;
+let bgLayer = null, cityLayer = null, twinkles = [], S = 1; // S shrinks meteors on narrow screens
+const game = {
+  state: 'menu', waveIdx: 0, meteors: [], pows: [], bits: [], texts: [], lasers: [],
+  score: 0, hearts: MAX_HEARTS, streak: 0, zapped: 0, attempts: 0, missed: [],
+  spawned: 0, resolved: 0, waveMisses: 0, spawnT: 0, freezeT: 0, shake: 0, flash: 0,
+  banner: null, clearT: 0, clearInfo: null, aim: -Math.PI / 2, blink: 0, overlayAt: 0,
+};
+
+// ============ Scenery (drawn once per resize) ============
+function layer() { const c = document.createElement('canvas'); c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); const g = c.getContext('2d'); g.scale(dpr, dpr); return [c, g]; }
+function rrect(c, x, y, w, h, r) {
+  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function buildScene() {
+  let g;
+  [bgLayer, g] = layer();
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#241b5c'); sky.addColorStop(0.5, '#4f3790'); sky.addColorStop(0.82, '#b2609a'); sky.addColorStop(1, '#ff9e7a');
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,241,214,.55)';
+  for (let i = 0; i < W * H / 2600; i++) { g.beginPath(); g.arc(Math.random() * W, Math.random() * H * 0.7, Math.random() * 1.3 + 0.4, 0, 7); g.fill(); }
+  // ringed planet
+  const px = W * 0.83, py = Math.min(90, H * 0.2), pr = Math.min(36, W * 0.07);
+  g.lineWidth = 3; g.strokeStyle = INK;
+  g.fillStyle = '#ffb4a2'; g.beginPath(); g.arc(px, py, pr, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#f08f7c';
+  [[-0.35, -0.2, 0.22], [0.3, 0.3, 0.16], [0.1, -0.45, 0.1]].forEach(([dx, dy, s]) => { g.beginPath(); g.arc(px + dx * pr, py + dy * pr, s * pr, 0, 7); g.fill(); });
+  g.save(); g.translate(px, py); g.rotate(-0.35);
+  g.beginPath(); g.ellipse(0, 0, pr * 1.75, pr * 0.42, 0, 0.1, Math.PI - 0.1); g.lineWidth = 9; g.strokeStyle = INK; g.stroke(); g.lineWidth = 4; g.strokeStyle = SUN; g.stroke();
+  g.restore();
+  // soft clouds + hills
+  g.fillStyle = 'rgba(255,190,200,.22)';
+  for (let i = 0; i < 5; i++) { const cx = Math.random() * W, cy = H * (0.55 + Math.random() * 0.15); [[0, 0, 26], [24, 6, 20], [-24, 6, 18], [46, 10, 14]].forEach(([dx, dy, r]) => { g.beginPath(); g.arc(cx + dx, cy + dy, r, 0, 7); g.fill(); }); }
+  groundBase = H - 18; groundY = groundBase - 64;
+  g.fillStyle = '#3a2a78'; g.beginPath(); g.moveTo(0, groundBase);
+  for (let x = 0; x <= W + 40; x += 40) g.quadraticCurveTo(x - 20, groundBase - 60 - Math.sin(x * 0.013) * 22, x, groundBase - 44 - Math.cos(x * 0.02) * 12);
+  g.lineTo(W, groundBase); g.fill();
+
+  // city (drawn in front of meteors)
+  [cityLayer, g] = layer();
+  const pal = [['#ff8fab', '#e0708e'], ['#7bdff2', '#57bdd1'], ['#ffd166', '#e3b243'], ['#b5e48c', '#8fc466'], ['#cdb4db', '#ab93bd'], ['#f4a261', '#d8843f']];
+  let x = -6;
+  while (x < W) {
+    const w = R(34, 62), h = R(34, 70);
+    if (Math.abs(x + w / 2 - W / 2) < 62) { x = W / 2 + 40; continue; } // gap for the cannon
+    const [col, dark] = pick(pal), top = groundBase - h, roof = pick(['flat', 'tri', 'antenna', 'dome', 'flat']);
+    g.lineWidth = 3; g.strokeStyle = INK; g.lineJoin = 'round';
+    if (roof === 'tri') { g.fillStyle = dark; g.beginPath(); g.moveTo(x - 3, top); g.lineTo(x + w / 2, top - 18); g.lineTo(x + w + 3, top); g.closePath(); g.fill(); g.stroke(); }
+    if (roof === 'dome') { g.fillStyle = dark; g.beginPath(); g.arc(x + w / 2, top, w * 0.32, Math.PI, 0); g.fill(); g.stroke(); }
+    if (roof === 'antenna') { g.beginPath(); g.moveTo(x + w * 0.7, top); g.lineTo(x + w * 0.7, top - 16); g.stroke(); g.fillStyle = CORAL; g.beginPath(); g.arc(x + w * 0.7, top - 18, 4, 0, 7); g.fill(); g.stroke(); }
+    g.fillStyle = col; rrect(g, x, top, w, h + 6, 5); g.fill(); g.stroke();
+    for (let wy = top + 9; wy < groundBase - 12; wy += 14)
+      for (let wx = x + 8; wx < x + w - 12; wx += 12) {
+        g.fillStyle = Math.random() < 0.6 ? '#fff4c8' : 'rgba(29,21,53,.3)';
+        rrect(g, wx, wy, 6, 8, 2); g.fill();
+      }
+    x += w + R(3, 10);
+  }
+  g.fillStyle = '#2d1f55'; g.fillRect(0, groundBase, W, H - groundBase);
+  g.strokeStyle = INK; g.lineWidth = 3; g.beginPath(); g.moveTo(0, groundBase); g.lineTo(W, groundBase); g.stroke();
+  g.strokeStyle = 'rgba(255,241,214,.35)'; g.setLineDash([12, 12]); g.beginPath(); g.moveTo(0, groundBase + 9); g.lineTo(W, groundBase + 9); g.stroke(); g.setLineDash([]);
+
+  twinkles = Array.from({ length: 9 }, () => ({ x: Math.random() * W, y: Math.random() * H * 0.55, s: Math.random() * 3 + 3, p: Math.random() * 6 }));
+}
+function resize() {
+  const r = stage.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  dpr = window.devicePixelRatio || 1; W = r.width; H = r.height; S = Math.min(1, Math.max(0.74, W / 620));
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  buildScene();
+}
+new ResizeObserver(resize).observe(stage);
+
+// ============ Meteors ============
+const speedMult = () => opts.speed;
+function meteorPos(m) {
+  const half = m.span / 2 + 4;
+  const x = Math.min(Math.max(m.fx * W, half), Math.max(half, W - half));
+  return { x, y: -m.r + m.p * (groundY + m.r) };
+}
+function spawnMeteor() {
+  const w = waveInfo(game.waveIdx);
+  const taken = new Set(game.meteors.map(m => m.a));
+  let prob, topic;
+  for (let i = 0; i < 30; i++) { topic = pick(w.topics); prob = GEN[topic](w.tier); if (!taken.has(prob.a)) break; }
+  const fs = Math.round(24 * S);
+  ctx.font = `600 ${fs}px ${FONT}`;
+  const lw = ctx.measureText(prob.q).width + 30 * S, r = Math.max(36 * S, lw * 0.46), span = Math.max(lw, 2 * r + 8);
+  // try a bunch of spots and keep the one with the most elbow room from meteors still high up
+  let x = W / 2, bestRoom = -Infinity;
+  for (let i = 0; i < 24; i++) {
+    const cx = span / 2 + 8 + Math.random() * Math.max(0, W - span - 16);
+    let room = Infinity;
+    for (const m of game.meteors) {
+      if (m.p > 0.55) continue;
+      const gap = Math.abs(meteorPos(m).x - cx) - (m.span + span) / 2;
+      room = Math.min(room, gap + m.p * 300); // lower meteors matter less
+    }
+    if (room > bestRoom) { bestRoom = room; x = cx; }
+  }
+  const n = 11;
+  const pts = Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2, k = 0.84 + Math.random() * 0.22; return [Math.cos(a) * r * k, Math.sin(a) * r * k]; });
+  game.meteors.push({
+    ...prob, topic, fx: x / W, p: 0, r, lw, span, pts, fs, lh: Math.round(40 * S),
+    gold: game.waveIdx > 0 && Math.random() < 0.08,
+    seed: Math.random() * 10, spin: (Math.random() - 0.5) * 1.2,
+    craters: [[-0.35, -0.3, 0.22], [0.35, 0.25, 0.18], [0.1, 0.5, 0.12]],
+  });
+  game.spawned++;
+}
+
+// ============ Effects ============
+function pow(x, y, text, color, r = 46) { game.pows.push({ x, y, text, color, r, t: 0, dur: 0.55, rot: (Math.random() - 0.5) * 0.5 }); }
+function debris(x, y, colors, n = 14, sp = 240) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = Math.random() * sp + 60;
+    game.bits.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, r: Math.random() * 4 + 2.5, color: pick(colors), life: 1 });
+  }
+}
+function floatText(x, y, text, color = PAPER, size = 24, life = 1.1) { game.texts.push({ x, y, text, color, size, life, max: life }); }
+function say(msg, cls = '') { feedback.textContent = msg; feedback.className = 'feedback ' + cls; }
+function flashInput(cls) { answer.classList.remove('wrong', 'right'); void answer.offsetWidth; answer.classList.add(cls); }
+
+// ============ HUD ============
+const HEART = '<svg viewBox="0 0 26 24"><path d="M13 22.5S2.5 16.2 2.5 8.6A5.6 5.6 0 0 1 13 5.6a5.6 5.6 0 0 1 10.5 3c0 7.6-10.5 13.9-10.5 13.9z" fill="#ff6b5b" stroke="#1d1535" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 8.2a2.6 2.6 0 0 1 2.4-2" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+const multiplier = () => Math.min(4, 1 + Math.floor(game.streak / 5));
+function hud(popHeart = -1) {
+  $('hearts').innerHTML = Array.from({ length: MAX_HEARTS }, (_, i) => HEART.replace('<svg', `<svg class="${i >= game.hearts ? 'lost' : ''} ${i === popHeart ? 'pop' : ''}"`)).join('');
+  const w = waveInfo(game.waveIdx);
+  $('waveLabel').textContent = `Wave ${game.waveIdx + 1}`;
+  $('waveBar').style.width = (game.state === 'menu' ? 0 : Math.min(100, 100 * game.resolved / w.count)) + '%';
+  $('score').textContent = game.score;
+  const m = multiplier();
+  $('combo').textContent = '×' + m;
+  $('combo').classList.toggle('show', m > 1);
+}
+function bumpScore() { const el = $('scorePill'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+
+// ============ Flow ============
+function showCard(html) { card.innerHTML = html; overlay.classList.remove('hidden'); game.overlayAt = performance.now(); card.style.animation = 'none'; void card.offsetWidth; card.style.animation = ''; }
+function hideCard() { overlay.classList.add('hidden'); }
+
+function showMenu() {
+  game.state = 'menu'; game.meteors = []; game.banner = null; game.freezeT = 0;
+  const badges = WAVES.map((w, i) => `<button class="wave-badge ${i === menuWave ? 'sel' : ''}" data-w="${i}" ${i >= unlocked ? 'disabled aria-label="Locked"' : ''}>${i >= unlocked ? lockSvg() : i + 1}</button>`).join('');
+  const w = WAVES[menuWave];
+  showCard(`
+    <div class="logo"><span>Math</span><span>Meteor</span><small>DEFENSE</small></div>
+    <p>Meteors are falling! Type the answer on a meteor to zap it before it bonks the city.</p>
+    <button class="btn" data-primary id="playBtn">Play wave ${menuWave + 1} <small>Enter</small></button>
+    <div class="section-label">Start at wave</div>
+    <div class="waves" id="waveBadges">${badges}</div>
+    <div class="wave-desc"><b>${w.name}</b>: ${[...new Set(w.topics)].map(t => TOPIC_NAMES[t]).join(', ')}</div>
+    <div class="opts">
+      <div class="seg" id="speedSeg">
+        <button data-v="0.75" class="${opts.speed === 0.75 ? 'on' : ''}">Relaxed</button><button data-v="1" class="${opts.speed === 1 ? 'on' : ''}">Normal</button><button data-v="1.25" class="${opts.speed === 1.25 ? 'on' : ''}">Fast</button>
+      </div>
+      <button class="toggle-btn" id="soundBtn">${opts.sound ? 'Sound on' : 'Sound off'}</button>
+    </div>
+    ${best.score ? `<p class="muted">Best score ${best.score} · Furthest wave ${best.wave}</p>` : `<p class="muted">Clear a wave to unlock the next one.</p>`}`);
+  $('waveBadges').onclick = e => { const b = e.target.closest('.wave-badge'); if (!b || b.disabled) return; menuWave = +b.dataset.w; sfx.click(); showMenu(); };
+  $('speedSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; opts.speed = +b.dataset.v; store.set('speed', opts.speed); sfx.click(); showMenu(); };
+  $('soundBtn').onclick = () => { opts.sound = !opts.sound; store.set('sound', opts.sound); sfx.click(); showMenu(); };
+  $('playBtn').onclick = () => startRun(menuWave);
+  game.waveIdx = menuWave; game.score = 0; game.hearts = MAX_HEARTS; game.streak = 0;
+  hud();
+  say('Press Enter to zap the meteor with that answer.');
+}
+function lockSvg() { return '<svg width="16" height="18" viewBox="0 0 16 18"><rect x="1.5" y="8" width="13" height="9" rx="2" fill="#b3a68b"/><path d="M4.5 8V5.5a3.5 3.5 0 0 1 7 0V8" stroke="#b3a68b" stroke-width="2.4" fill="none"/></svg>'; }
+
+function startRun(i) {
+  Object.assign(game, { score: 0, hearts: MAX_HEARTS, streak: 0, zapped: 0, attempts: 0, missed: [], pows: [], bits: [], texts: [], lasers: [] });
+  tone(1, 0.01, 'sine', 0.0001); // unlock audio during the click
+  showIntro(i, null);
+}
+
+function showIntro(i, cleared) {
+  game.state = 'intro'; game.waveIdx = i; game.resolved = 0; game.meteors = [];
+  unlocked = Math.min(WAVES.length, Math.max(unlocked, i + 1)); store.set('unlocked', unlocked);
+  if (i < WAVES.length) menuWave = i;
+  const w = waveInfo(i);
+  const clearedHtml = cleared ? `<div class="cleared"><span>Wave ${cleared.n} cleared!</span><span>+${cleared.bonus} bonus</span>${cleared.healed ? '<span>+1 heart</span>' : ''}</div>` : '';
+  const skill = w.skill ? `<div class="skill"><span class="tag">${i === 0 ? 'Skill' : 'New skill'}</span><h3>${w.skill.title}</h3><p>${w.skill.text}</p>${w.skill.ex ? `<div class="ex">${w.skill.ex}</div>` : ''}</div>`
+    : `<p>The storm is getting faster. Stay sharp!</p>`;
+  showCard(`${clearedHtml}<div class="kicker">Wave ${i + 1}</div><h2>${w.name}</h2>${skill}<button class="btn" data-primary id="goBtn">Go! <small>Enter</small></button>`);
+  $('goBtn').onclick = () => beginWave(i);
+  hud();
+}
+
+function beginWave(i) {
+  Object.assign(game, { state: 'playing', waveIdx: i, meteors: [], spawned: 0, resolved: 0, waveMisses: 0, spawnT: 0.9, freezeT: 0 });
+  game.banner = { text: `WAVE ${i + 1}`, sub: waveInfo(i).name, life: 1.6, max: 1.6 };
+  hideCard(); hud();
+  answer.value = ''; say('Type the answer and press Enter!');
+  if (!isCoarse) answer.focus();
+}
+
+function waveCleared() {
+  const n = game.waveIdx + 1, perfect = game.waveMisses === 0;
+  const bonus = 20 * n + (perfect ? 50 : 0);
+  const healed = game.hearts < MAX_HEARTS;
+  if (healed) game.hearts++;
+  game.score += bonus;
+  game.clearInfo = { n, bonus, healed };
+  game.state = 'cleared'; game.clearT = 2;
+  game.banner = { text: perfect ? 'PERFECT!' : 'WAVE CLEARED!', sub: `+${bonus} bonus`, life: 2, max: 2 };
+  unlocked = Math.min(WAVES.length, Math.max(unlocked, n + 1)); store.set('unlocked', unlocked);
+  saveBest(); sfx.clear(); hud(healed ? game.hearts - 1 : -1);
+  say(perfect ? 'Not a single meteor got through. Amazing!' : 'Wave cleared! Get ready for the next one.', 'good');
+}
+
+function saveBest() {
+  if (game.score > best.score || game.waveIdx + 1 > best.wave) {
+    const isNew = game.score > best.score;
+    best = { score: Math.max(best.score, game.score), wave: Math.max(best.wave, game.waveIdx + 1) };
+    store.set('best', best);
+    return isNew;
+  }
+  return false;
+}
+
+function gameOver() {
+  game.state = 'over'; sfx.over();
+  const prevBest = best.score, isBest = game.score > prevBest && game.score > 0;
+  saveBest();
+  const acc = game.attempts ? Math.round(100 * game.zapped / game.attempts) : 0;
+  const missed = game.missed.slice(-3).map(m => `<div>${m.q} = <b>${m.a}</b></div>`).join('');
+  showCard(`
+    <h2>Bonk!</h2>
+    <p>The city ran out of hearts on wave ${game.waveIdx + 1}.</p>
+    ${isBest ? '<div class="best">New best score!</div>' : ''}
+    <div class="stats">
+      <div><b>${game.score}</b><span>points</span></div>
+      <div><b>${game.zapped}</b><span>meteors zapped</span></div>
+      <div><b>${acc}%</b><span>answers right</span></div>
+      <div><b>${best.score}</b><span>best score</span></div>
+    </div>
+    ${missed ? `<div class="missed"><div class="muted">Remember these:</div>${missed}</div>` : ''}
+    <div class="btn-row">
+      <button class="btn" data-primary id="retryBtn">Try wave ${game.waveIdx + 1} again</button>
+      <button class="btn alt" id="menuBtn">Menu</button>
+    </div>`);
+  $('retryBtn').onclick = () => startRun(game.waveIdx);
+  $('menuBtn').onclick = showMenu;
+}
+
+function togglePause() {
+  if (game.state === 'playing') {
+    game.state = 'paused';
+    showCard(`<h2>Paused</h2><p>The meteors will wait for you.</p>
+      <div class="btn-row"><button class="btn" data-primary id="resumeBtn">Resume <small>Esc</small></button></div>
+      <div class="opts"><button class="toggle-btn" id="soundBtn">${opts.sound ? 'Sound on' : 'Sound off'}</button><button class="toggle-btn" id="quitBtn">Quit to menu</button></div>`);
+    $('resumeBtn').onclick = togglePause;
+    $('soundBtn').onclick = e => { opts.sound = !opts.sound; store.set('sound', opts.sound); e.target.textContent = opts.sound ? 'Sound on' : 'Sound off'; };
+    $('quitBtn').onclick = showMenu;
+  } else if (game.state === 'paused') {
+    game.state = 'playing'; hideCard();
+    if (!isCoarse) answer.focus();
+  }
+}
+
+// ============ Answers ============
+function submit() {
+  if (game.state !== 'playing') return;
+  const raw = answer.value.trim();
+  if (!raw) return;
+  const n = Number(raw);
+  answer.value = '';
+  game.attempts++;
+  const hits = game.meteors.filter(m => m.a === n);
+  if (!hits.length) {
+    game.streak = 0; hud(); sfx.wrong(); flashInput('wrong');
+    say(`No meteor has the answer ${n}. Check again!`, 'bad');
+    return;
+  }
+  zap(hits.reduce((a, b) => (b.p > a.p ? b : a)));
+  flashInput('right');
+}
+
+function zap(m) {
+  const { x, y } = meteorPos(m);
+  game.meteors.splice(game.meteors.indexOf(m), 1);
+  game.zapped++; game.streak++; game.resolved++;
+  const pts = 10 * multiplier();
+  game.score += pts;
+  game.lasers.push({ x, y, life: 0.2 });
+  pow(x, y, pick(['ZAP!', 'POW!', 'BAM!', 'ZOK!']), m.gold ? '#9be7ff' : SUN);
+  debris(x, y, m.gold ? [SUN, '#fff4c8'] : ['#9c7a6b', '#7d5d52', SUN, CORAL]);
+  floatText(x, y - 50, `+${pts}`, SUN, 26);
+  sfx.zap();
+  if (m.gold && (game.meteors.length || game.spawned < waveInfo(game.waveIdx).count)) { game.freezeT = 4; floatText(W / 2, groundY * 0.45, 'FREEZE!', '#bff0ff', 40, 1.5); sfx.freeze(); }
+  const cheer = game.streak >= 5 && game.streak % 5 === 0 ? `${game.streak} in a row! Points ×${multiplier()}` : pick(['Nice!', 'Great job!', 'You got it!', 'Boom!', 'Awesome!', 'Zapped!']);
+  say(`${m.q} = ${m.a}. ${cheer}`, 'good');
+  hud(); bumpScore();
+}
+
+function miss(m) {
+  const { x } = meteorPos(m);
+  game.meteors.splice(game.meteors.indexOf(m), 1);
+  game.hearts--; game.streak = 0; game.resolved++; game.waveMisses++;
+  game.shake = 14; game.flash = 0.35;
+  game.missed.push({ q: m.q, a: m.a });
+  pow(x, groundY + 10, 'BONK!', CORAL, 56);
+  debris(x, groundY, ['#9c7a6b', CORAL, SUN], 22, 280);
+  floatText(Math.min(W - 100, Math.max(100, x)), groundY - 70, `${m.q} = ${m.a}`, '#ffd2cc', 26, 2.4);
+  sfx.bonk();
+  say(`Oops! ${m.q} = ${m.a}. You'll get the next one!`, 'bad');
+  hud(game.hearts);
+  if (game.hearts <= 0) gameOver();
+}
+
+// ============ Update ============
+function update(dt) {
+  if (game.state === 'cleared') { game.clearT -= dt; if (game.clearT <= 0) showIntro(game.waveIdx + 1, game.clearInfo); return; }
+  if (game.state !== 'playing') return;
+  if (game.freezeT > 0) { game.freezeT -= dt; return; }
+  const w = waveInfo(game.waveIdx);
+  const fall = BASE_FALL / (w.speed * speedMult());
+  for (const m of [...game.meteors]) {
+    m.p += dt / fall;
+    if (m.p >= 1) { miss(m); if (game.state !== 'playing') return; }
+  }
+  if (game.spawned < w.count) {
+    game.spawnT -= dt;
+    if ((game.spawnT <= 0 || !game.meteors.length) && game.meteors.length < (W < 500 ? 4 : MAX_ON_SCREEN)) {
+      spawnMeteor(); game.spawnT = w.spawn / speedMult();
+    }
+  } else if (!game.meteors.length) waveCleared();
+}
+function updateFx(dt) {
+  for (const p of game.pows) p.t += dt;
+  game.pows = game.pows.filter(p => p.t < p.dur);
+  for (const b of game.bits) { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 520 * dt; b.life -= dt * 1.3; }
+  game.bits = game.bits.filter(b => b.life > 0 && b.y < H + 20);
+  for (const t of game.texts) { t.y -= 34 * dt; t.life -= dt; }
+  game.texts = game.texts.filter(t => t.life > 0);
+  for (const l of game.lasers) l.life -= dt;
+  game.lasers = game.lasers.filter(l => l.life > 0);
+  if (game.banner) { game.banner.life -= dt; if (game.banner.life <= 0) game.banner = null; }
+  game.shake = Math.max(0, game.shake - 45 * dt);
+  game.flash = Math.max(0, game.flash - dt);
+  game.blink = (game.blink + dt) % 4;
+}
+
+// ============ Render ============
+function flame(w, h) { ctx.beginPath(); ctx.moveTo(-w, 0); ctx.quadraticCurveTo(-w * 0.8, -h * 0.55, 0, -h); ctx.quadraticCurveTo(w * 0.8, -h * 0.55, w, 0); ctx.closePath(); }
+function starburst(r, spikes = 11) {
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) { const a = i * Math.PI / spikes - Math.PI / 2, rad = i % 2 ? r * 0.6 : r; ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); }
+  ctx.closePath();
+}
+function outlinedText(text, x, y, size, fill, stroke = INK, weight = 700) {
+  ctx.font = `${weight} ${size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(4, size / 5); ctx.strokeStyle = stroke; ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill; ctx.fillText(text, x, y);
+}
+
+function drawMeteor(m, t) {
+  const { x, y } = meteorPos(m), danger = m.p > 0.72, frozen = game.freezeT > 0;
+  ctx.save(); ctx.translate(x, y);
+  ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+  if (!frozen) {
+    const f = 1 + 0.12 * Math.sin(t * 20 + m.seed);
+    ctx.fillStyle = CORAL; flame(m.r * 0.92, m.r * 2.3 * f); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffa94d'; flame(m.r * 0.64, m.r * 1.8 * f); ctx.fill();
+    ctx.fillStyle = '#ffe066'; flame(m.r * 0.38, m.r * 1.3 * f); ctx.fill();
+  }
+  ctx.save(); ctx.rotate(m.seed + t * m.spin * (frozen ? 0 : 1));
+  ctx.beginPath(); m.pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath();
+  ctx.fillStyle = frozen ? '#bfe9ff' : m.gold ? SUN : '#9c7a6b'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = frozen ? '#9dd6f2' : m.gold ? '#e8a52a' : '#7d5d52';
+  for (const [cx, cy, s] of m.craters) { ctx.beginPath(); ctx.arc(cx * m.r, cy * m.r, s * m.r, 0, 7); ctx.fill(); }
+  ctx.restore();
+  // answer sticker
+  if (danger && !frozen) ctx.rotate(Math.sin(t * 22) * 0.06);
+  const lh = m.lh;
+  rrect(ctx, -m.lw / 2, -lh / 2 + 4, m.lw, lh, lh * 0.28);
+  ctx.fillStyle = INK; ctx.save(); ctx.translate(0, 3); ctx.fill(); ctx.restore();
+  rrect(ctx, -m.lw / 2, -lh / 2 + 4, m.lw, lh, lh * 0.28);
+  ctx.fillStyle = danger ? CORAL : PAPER; ctx.fill(); ctx.stroke();
+  ctx.font = `600 ${m.fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = danger ? '#fff' : INK; ctx.fillText(m.q, 0, 5);
+  if (m.gold) { ctx.translate(m.lw / 2 - 2, -lh / 2 + 4); ctx.fillStyle = SUN; starburst(10, 5); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawCannon(t) {
+  const cx = W / 2, cy = groundBase - 22;
+  let target = -Math.PI / 2 + Math.sin(t * 0.8) * 0.5;
+  if (game.meteors.length) { const low = game.meteors.reduce((a, b) => (b.p > a.p ? b : a)); const { x, y } = meteorPos(low); target = Math.atan2(y - cy, x - cx); }
+  target = Math.min(-0.15, Math.max(-Math.PI + 0.15, target));
+  game.aim += (target - game.aim) * 0.12;
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+  ctx.save(); ctx.rotate(game.aim);
+  ctx.fillStyle = PAPER; rrect(ctx, 0, -9, 48, 18, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = SUN; rrect(ctx, 38, -11, 12, 22, 5); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#5b4aa0'; rrect(ctx, -40, 4, 80, 22, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = TEAL; ctx.beginPath(); ctx.arc(0, 6, 30, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  // eyes that follow the lowest meteor
+  const blink = game.blink > 3.85 ? 0.15 : 1, lx = Math.cos(game.aim) * 2.5, ly = Math.sin(game.aim) * 2.5;
+  for (const ex of [-10, 10]) {
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ex, -8, 7, 8 * blink, 0, 0, 7); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
+    if (blink === 1) { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ex + lx, -8 + ly, 3.4, 0, 7); ctx.fill(); }
+  }
+  ctx.restore();
+  return { x: cx + Math.cos(game.aim) * 50, y: cy + Math.sin(game.aim) * 50 };
+}
+
+function render(t) {
+  ctx.save();
+  ctx.clearRect(0, 0, W, H);
+  if (game.shake > 0) ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
+  if (bgLayer) ctx.drawImage(bgLayer, 0, 0, W, H);
+  // twinkling sparkles
+  ctx.fillStyle = '#fff4c8';
+  for (const s of twinkles) {
+    const k = 0.5 + 0.5 * Math.sin(t * 2 + s.p), r = s.s * (0.5 + k * 0.6);
+    ctx.globalAlpha = 0.4 + 0.6 * k; ctx.beginPath();
+    ctx.moveTo(s.x, s.y - r); ctx.quadraticCurveTo(s.x, s.y, s.x + r, s.y); ctx.quadraticCurveTo(s.x, s.y, s.x, s.y + r);
+    ctx.quadraticCurveTo(s.x, s.y, s.x - r, s.y); ctx.quadraticCurveTo(s.x, s.y, s.x, s.y - r); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // shield bubble over the city
+  const frac = game.hearts / MAX_HEARTS;
+  if (frac > 0) {
+    ctx.beginPath(); ctx.ellipse(W / 2, groundBase + 30, W * 0.72, groundBase + 30 - groundY + 4, 0, Math.PI, 0);
+    const col = game.flash > 0 ? '255,107,91' : '123,223,242';
+    ctx.fillStyle = `rgba(${col},${0.06 + 0.08 * frac})`; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = `rgba(${col},${0.3 + 0.5 * frac})`; ctx.stroke();
+  }
+
+  for (const m of game.meteors) drawMeteor(m, t);
+  if (cityLayer) ctx.drawImage(cityLayer, 0, 0, W, H);
+  const tip = drawCannon(t);
+
+  // lasers
+  for (const l of game.lasers) {
+    const a = l.life / 0.2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = INK; ctx.lineWidth = 14 * a + 2; ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.lineTo(l.x, l.y); ctx.stroke();
+    ctx.strokeStyle = SUN; ctx.lineWidth = 10 * a; ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 4 * a; ctx.stroke();
+  }
+  // debris
+  ctx.lineWidth = 2; ctx.strokeStyle = INK;
+  for (const b of game.bits) { ctx.globalAlpha = Math.min(1, b.life * 2); ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  // POW bursts
+  for (const p of game.pows) {
+    const k = Math.min(1, p.t / 0.12), s = k < 1 ? k * 1.15 : 1.15 - Math.min(0.15, (p.t - 0.12));
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(s, s);
+    ctx.globalAlpha = p.t > p.dur - 0.15 ? (p.dur - p.t) / 0.15 : 1;
+    ctx.fillStyle = p.color; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    starburst(p.r); ctx.fill(); ctx.stroke();
+    outlinedText(p.text, 0, 2, p.r * 0.46, '#fff');
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // floating text
+  for (const tx of game.texts) { ctx.globalAlpha = Math.min(1, (tx.life / tx.max) * 2.5); outlinedText(tx.text, tx.x, tx.y, tx.size, tx.color); }
+  ctx.globalAlpha = 1;
+
+  if (game.freezeT > 0) {
+    ctx.fillStyle = `rgba(160,225,255,${0.16 + 0.04 * Math.sin(t * 8)})`; ctx.fillRect(-20, -20, W + 40, H + 40);
+    outlinedText(`Frozen! ${game.freezeT.toFixed(1)}`, W / 2, 28, 22, '#e6f9ff');
+  }
+  if (game.banner) {
+    const b = game.banner, age = b.max - b.life, pop = Math.min(1, age / 0.18);
+    ctx.globalAlpha = Math.min(1, b.life * 2.5);
+    ctx.save(); ctx.translate(W / 2, groundY * 0.4); ctx.rotate(-0.04); ctx.scale(0.5 + 0.5 * pop, 0.5 + 0.5 * pop);
+    outlinedText(b.text, 0, 0, Math.min(58, W / 9), SUN, INK);
+    if (b.sub) outlinedText(b.sub, 0, 46, 24, PAPER, INK, 600);
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  if (game.flash > 0) { ctx.fillStyle = `rgba(255,107,91,${game.flash * 0.55})`; ctx.fillRect(0, 0, W, H); }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt);
+  if (game.state !== 'paused') updateFx(dt);
+  if (W > 0) render(now / 1000);
+  requestAnimationFrame(loop);
+}
+
+// ============ Input ============
+answer.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+answer.addEventListener('input', () => { answer.value = answer.value.replace(/[^0-9]/g, '').slice(0, 4); answer.classList.remove('wrong', 'right'); });
+$('zapBtn').onclick = () => { submit(); if (!isCoarse) answer.focus(); };
+$('pauseBtn').onclick = () => togglePause();
+stage.addEventListener('pointerdown', e => { if (game.state === 'playing' && !isCoarse) setTimeout(() => answer.focus(), 0); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { togglePause(); return; }
+  if (e.key === 'Enter' && !overlay.classList.contains('hidden')) {
+    const b = card.querySelector('[data-primary]');
+    if (b && performance.now() - game.overlayAt > 700) { e.preventDefault(); b.click(); }
+    return;
+  }
+  if (game.state !== 'playing' || e.target === answer) return;
+  if (/^[0-9]$/.test(e.key)) { e.preventDefault(); answer.value = (answer.value + e.key).slice(0, 4); if (!isCoarse) answer.focus(); }
+  else if (e.key === 'Backspace') { e.preventDefault(); answer.value = answer.value.slice(0, -1); }
+  else if (e.key === 'Enter') { e.preventDefault(); submit(); }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'playing') togglePause(); });
+
+$('keypad').innerHTML = ['1', '2', '3', '4', '5', '⌫', '6', '7', '8', '9', '0', 'GO'].map(k => `<button class="${k === 'GO' ? 'go' : ''}" data-k="${k}">${k}</button>`).join('');
+$('keypad').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  e.preventDefault();
+  answer.classList.remove('wrong', 'right');
+  const k = b.dataset.k;
+  if (k === '⌫') answer.value = answer.value.slice(0, -1);
+  else if (k === 'GO') submit();
+  else answer.value = (answer.value + k).slice(0, 4);
+});
+
+// ============ Boot ============
+showMenu();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

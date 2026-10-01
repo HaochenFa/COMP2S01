@@ -1,6 +1,6 @@
 node_modules/
 .DS_Store
 .playwright-mcp/
-meet-momo-video/out/
-meet-momo-video/dist/
+hw1-momo/meet-momo-video/out/
+hw1-momo/meet-momo-video/dist/
 .claude/settings.local.json
