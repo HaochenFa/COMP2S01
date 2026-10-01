@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A monorepo holding all of the owner's COMP2S01 coursework. Each assignment lives in its own top-level folder and is independent of the others; there is no shared tooling at the root.
 
-- `hw1-momo/`: Assignment 1, the *Momo Learns to Munch* game and its Remotion intro video. Its own `CLAUDE.md` has the details; commands there are run from `hw1-momo/`.
-- `inclass1-math-meteor-defense/`: an in-class assignment, a self-contained single HTML file mini-game for Grade 5/6 pupils. Open the HTML file in a browser to play.
+- `hw1-momo/`: Homework 1, the *Momo Learns to Munch* game and its Remotion intro video. Read `hw1-momo/CLAUDE.md` before changing anything there; its commands are run from `hw1-momo/`.
+- `inclass1-math-meteor-defense/`: an in-class assignment, a single-file HTML mini-game for Grade 5/6 pupils (CSS and JS inline, no build, no tests). Open `math-meteor-defense.html` in a browser to play. Its only network use is the Fredoka font from Google Fonts (offline it falls back to a system font). Best score and furthest wave are saved in `localStorage` under `mmd2-` keys.
 
 ## Conventions
 

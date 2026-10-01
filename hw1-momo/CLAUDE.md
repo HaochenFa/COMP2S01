@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in `hw1-momo/`, Assignment 1 inside the COMP2S01 monorepo.
 
 ## What this is
 
@@ -8,7 +8,7 @@ Coursework for Assignment 1 (brief: `HW1_Digital-Product-Dev.docx`). The reposit
 
 - `momo-learns-to-munch/` is the game (the product). Plain HTML, CSS and JavaScript with no build step and no dependencies.
 - `meet-momo-video/` is a Remotion project that renders the intro video into `momo-learns-to-munch/media/meet-momo.mp4` (and its poster frame, `meet-momo.jpg`).
-- Version history is tagged: `hw1-v0` is the first implementation (its reference screenshots are in `v1-screenshots/` at that tag), `hw1-v0.1` is the picture-book redesign. Check out a tag to show an earlier version.
+- Versions are git tags: `hw1-v0` is the first implementation, `hw1-v0.1` the picture-book redesign. Screenshots of v0 exist only in those tags (`v1-screenshots/` at the repo root; the name is old, the pictures show v0). Check out a tag to show an earlier version; don't label anything "v1".
 
 ## Commands
 
