@@ -1,6 +1,7 @@
 # Math Meteor Defense
 
-A maths game for pupils aged 9 to 12. Meteors with sums on them fall
+Homework 1 (Digital Product Development and Peer Improvement): a maths game
+for pupils aged 9 to 12. Meteors with sums on them fall
 towards a city. Type the answer and press Enter to zap the meteor before
 it hits.
 
@@ -42,7 +43,7 @@ Checked against the Pair B list in
 | | MVP | V1 | V1.1 |
 |---|---|---|---|
 | How it was made | With Claude's `/playground` skill | Four follow-up requests from the team | Adds the brief's "hints for incorrect answers" |
-| Where to find it | `math-meteor-defense-mvp.html` | git tag `inclass1-v1` | `math-meteor-defense.html` (git tag `inclass1-v1.1`) |
+| Where to find it | `math-meteor-defense-mvp.html` | git tag `hw1-meteor-v1` | `math-meteor-defense.html` (git tag `hw1-meteor-v1.1`) |
 
 ### MVP: a settings playground
 
@@ -143,7 +144,8 @@ demo.
 To show the game exactly as it was at V1:
 
 ```bash
-git checkout inclass1-v1
+git checkout hw1-meteor-v1
 ```
 
+At that tag the folder still has its old name, `inclass1-math-meteor-defense/`.
 Come back with `git checkout main`.
