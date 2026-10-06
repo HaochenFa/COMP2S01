@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Math Meteor Defense</title>
+<style>
+:root {
+  --bg: #0a0e1d; --panel: #121833; --panel2: #1a2244; --line: #28325e;
+  --text: #eef1ff; --muted: #98a3cc; --accent: #ffb627; --accent2: #5ad1ff;
+  --good: #4ade80; --bad: #ff5d73; --radius: 14px;
+  --ui: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--ui); }
+button, input, select { font-family: inherit; }
+header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+header h1 { font-size: 20px; margin: 0; letter-spacing: .3px; }
+header .tag { font-size: 12px; color: var(--muted); background: var(--panel2); padding: 3px 9px; border-radius: 99px; border: 1px solid var(--line); }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; padding: 18px 20px 28px; max-width: 1280px; margin: 0 auto; }
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; align-self: start; position: sticky; top: 12px; }
+.group { margin-bottom: 18px; }
+.group:last-child { margin-bottom: 0; }
+.group h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 8px; font-weight: 700; display: flex; justify-content: space-between; }
+.group h3 .val { font-family: var(--mono); color: var(--accent2); text-transform: none; letter-spacing: 0; }
+.hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.presets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.presets button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
+.presets button .e { margin-right: 4px; }
+.presets button:hover { border-color: var(--accent2); }
+.presets button.active { border-color: var(--accent); background: #2a2a3a; box-shadow: 0 0 0 1px var(--accent) inset; }
+.presets button:last-child:nth-child(odd) { grid-column: span 2; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel2); font-size: 13px; cursor: pointer; user-select: none; color: var(--muted); }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); opacity: .35; }
+.chip.on { color: var(--text); border-color: var(--c); }
+.chip.on .dot { opacity: 1; box-shadow: 0 0 8px var(--c); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.seg { display: flex; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+.seg button { flex: 1; background: none; border: 0; color: var(--muted); padding: 6px 4px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.seg button.on { background: var(--accent); color: #231500; }
+details summary { cursor: pointer; font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .5px; margin-bottom: 10px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; font-size: 13px; margin: 8px 0; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 18px; height: 18px; }
+
+main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.hud { display: flex; gap: 8px; flex-wrap: wrap; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; min-width: 88px; }
+.stat .k { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
+.stat .v { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat.lives .v { letter-spacing: 1px; font-size: 17px; line-height: 26px; }
+.stat.timer { display: none; }
+.stat.timer.show { display: block; }
+.stat .v.pop { animation: pop .3s; }
+@keyframes pop { 50% { transform: scale(1.25); color: var(--accent); } }
+.stage { position: relative; height: min(560px, 62vh); min-height: 360px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: #060914; }
+canvas { display: block; width: 100%; height: 100%; }
+.overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 9, 20, .72); backdrop-filter: blur(3px); padding: 16px; }
+.overlay.hidden { display: none; }
+.card { text-align: center; max-width: 440px; }
+.card h2 { font-size: 34px; margin: 0 0 6px; background: linear-gradient(90deg, #ffd35a, #ff7a45); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.card p { color: #cdd4f5; margin: 6px 0; font-size: 16px; line-height: 1.45; }
+.card .small { font-size: 13px; color: var(--muted); }
+.big-btn { margin-top: 14px; background: linear-gradient(180deg, #ffc84a, #ff9a1f); color: #2a1600; border: 0; font-size: 20px; font-weight: 800; padding: 12px 34px; border-radius: 99px; cursor: pointer; box-shadow: 0 6px 0 #b8620a, 0 10px 24px rgba(255, 150, 30, .35); }
+.big-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #b8620a; }
+.results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0 4px; }
+.results div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.results b { display: block; font-size: 22px; }
+.results span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.newbest { display: inline-block; background: var(--good); color: #052e14; font-weight: 800; padding: 3px 12px; border-radius: 99px; margin-top: 4px; animation: pop .6s 2; }
+.answer-row { display: flex; gap: 8px; align-items: stretch; }
+#answer { flex: 1; min-width: 0; font-size: 26px; font-weight: 800; padding: 10px 16px; border-radius: 12px; border: 2px solid var(--line); background: var(--panel); color: var(--text); outline: none; font-variant-numeric: tabular-nums; }
+#answer:focus { border-color: var(--accent2); box-shadow: 0 0 0 4px rgba(90, 209, 255, .15); }
+#answer.wrong { border-color: var(--bad); animation: shake .35s; }
+#answer.right { border-color: var(--good); }
+@keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+.zap-btn { background: var(--accent2); color: #001a26; border: 0; font-weight: 800; font-size: 18px; padding: 0 22px; border-radius: 12px; cursor: pointer; }
+.icon-btn { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px; width: 52px; font-size: 18px; cursor: pointer; }
+.feedback { min-height: 20px; font-size: 14px; color: var(--muted); text-align: center; }
+.feedback.bad { color: var(--bad); } .feedback.good { color: var(--good); }
+.keypad { display: none; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.keypad button { font-size: 22px; font-weight: 800; padding: 10px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); touch-action: manipulation; }
+.keypad button.enter { background: var(--accent2); color: #001a26; }
+@media (pointer: coarse) { .keypad { display: grid; } }
+
+.prompt-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.prompt-box .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+.prompt-box h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+#prompt { font-family: var(--mono); font-size: 13px; line-height: 1.55; color: #d6dcfb; white-space: pre-wrap; }
+.copy-btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.copy-btn.done { border-color: var(--good); color: var(--good); }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; padding: 12px 16px 24px; }
+  aside { position: static; order: 2; }
+  main { order: 1; }
+  .stage { height: 58vh; }
+  .card h2 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>☄️ Math Meteor Defense</h1>
+  <span class="tag">Grades 5–6</span>
+</header>
+
+<div class="layout">
+  <aside id="controls">
+    <div class="group">
+      <h3>Presets</h3>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="group">
+      <h3>Math topics</h3>
+      <div class="chips" id="topics"></div>
+      <div class="hint">New meteors use the topics you pick.</div>
+    </div>
+    <div class="group">
+      <h3>Meteor speed <span class="val" id="speedVal"></span></h3>
+      <input type="range" id="speed" min="0.5" max="2" step="0.1">
+      <div class="scale"><span>🐢 Chill</span><span>🚀 Zoomy</span></div>
+    </div>
+    <div class="group">
+      <h3>New meteor every <span class="val" id="spawnVal"></span></h3>
+      <input type="range" id="spawn" min="1.2" max="5" step="0.1">
+      <div class="scale"><span>Busy sky</span><span>Calm sky</span></div>
+    </div>
+    <div class="group">
+      <h3>Shields <span class="val" id="livesVal"></span></h3>
+      <input type="range" id="lives" min="1" max="9" step="1">
+      <div class="hint">Applies when the next round starts.</div>
+    </div>
+    <div class="group">
+      <h3>Time limit</h3>
+      <div class="seg" id="timer">
+        <button data-v="0">None</button><button data-v="60">60s</button><button data-v="90">90s</button><button data-v="120">2 min</button>
+      </div>
+      <div class="hint">Applies when the next round starts.</div>
+    </div>
+    <div class="group">
+      <details id="advanced">
+        <summary>MORE OPTIONS</summary>
+        <h3>Number size</h3>
+        <div class="seg" id="size">
+          <button data-v="0">Small</button><button data-v="1">Medium</button><button data-v="2">Big</button>
+        </div>
+        <label class="toggle">Gold freeze meteors ❄️ <input type="checkbox" id="powerups"></label>
+        <label class="toggle">Sound effects 🔊 <input type="checkbox" id="sound"></label>
+      </details>
+    </div>
+  </aside>
+
+  <main>
+    <div class="hud">
+      <div class="stat"><div class="k">Score</div><div class="v" id="hScore">0</div></div>
+      <div class="stat"><div class="k">Level</div><div class="v" id="hLevel">1</div></div>
+      <div class="stat"><div class="k">Streak</div><div class="v" id="hStreak">0</div></div>
+      <div class="stat lives"><div class="k">Shields</div><div class="v" id="hLives"></div></div>
+      <div class="stat timer" id="timerStat"><div class="k">Time</div><div class="v" id="hTime">60</div></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="overlay" id="overlay"><div class="card" id="overlayCard"></div></div>
+    </div>
+
+    <div class="answer-row">
+      <input id="answer" type="text" inputmode="numeric" autocomplete="off" placeholder="Type the answer…" aria-label="Your answer">
+      <button class="zap-btn" id="zapBtn">ZAP ⚡</button>
+      <button class="icon-btn" id="pauseBtn" title="Pause (Esc)">⏸</button>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <div class="feedback" id="feedback">Press Enter to zap the meteor with that answer.</div>
+
+    <div class="prompt-box">
+      <div class="top">
+        <h3>Ask Claude to tweak this game</h3>
+        <button class="copy-btn" id="copyBtn">Copy prompt</button>
+      </div>
+      <div id="prompt"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ---------- Settings, defaults, presets ----------
+const TOPICS = [
+  { id: 'mult', label: 'Multiplication', color: '#ff8a3d' },
+  { id: 'div',  label: 'Division',       color: '#ff5d8f' },
+  { id: 'frac', label: 'Fractions',      color: '#a78bfa' },
+  { id: 'dec',  label: 'Decimals',       color: '#2dd4bf' },
+  { id: 'pct',  label: 'Percents',       color: '#5ab8ff' },
+  { id: 'ops',  label: 'Order of ops',   color: '#facc15' },
+];
+const TOPIC_BY_ID = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+const SIZE_NAMES = ['small', 'medium', 'big'];
+
+const DEFAULTS = { topics: ['mult', 'div', 'frac', 'dec'], speed: 1, spawn: 2.8, lives: 5, timer: 0, size: 1, powerups: true, sound: true };
+const PRESETS = [
+  { name: 'Warm-up',          e: '🌱', s: { topics: ['mult', 'div'], speed: 0.7, spawn: 3.6, lives: 7, timer: 0, size: 0, powerups: true } },
+  { name: 'Grade 5 Mix',      e: '⭐', s: { ...DEFAULTS } },
+  { name: 'Grade 6 Challenge', e: '🔥', s: { topics: TOPICS.map(t => t.id), speed: 1.3, spawn: 2.2, lives: 3, timer: 0, size: 2, powerups: true } },
+  { name: 'Fraction Frenzy',  e: '🍕', s: { topics: ['frac', 'dec', 'pct'], speed: 0.9, spawn: 3, lives: 5, timer: 0, size: 1, powerups: true } },
+  { name: '60-Second Sprint', e: '⏱️', s: { topics: ['mult', 'div', 'ops'], speed: 1.4, spawn: 1.6, lives: 5, timer: 60, size: 1, powerups: true } },
+];
+const state = structuredClone(DEFAULTS);
+
+// ---------- Problem generators (always non-negative integer answers) ----------
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const fmt1 = x => (Math.round(x * 10) / 10).toString();
+
+const GEN = {
+  mult(s) {
+    const [a, b] = s === 0 ? [R(2, 9), R(2, 10)] : s === 1 ? [R(3, 12), R(4, 12)] : [R(13, 39), R(3, 9)];
+    return { q: `${a} × ${b}`, a: a * b };
+  },
+  div(s) {
+    const d = s === 0 ? R(2, 9) : s === 1 ? R(3, 12) : R(4, 12);
+    const q = s === 0 ? R(2, 10) : s === 1 ? R(4, 12) : R(11, 25);
+    return { q: `${d * q} ÷ ${d}`, a: q };
+  },
+  frac(s) {
+    const dens = s === 0 ? [2, 3, 4, 5, 10] : [3, 4, 5, 6, 8, 10];
+    const d = pick(dens);
+    let n = s === 0 ? 1 : R(1, d - 1);
+    while (gcd(n, d) !== 1) n = R(1, d - 1);
+    if (Math.random() < 0.6) {
+      const k = s === 0 ? R(2, 8) : s === 1 ? R(2, 10) : R(5, 15);
+      return { q: `${n}/${d} of ${d * k}`, a: n * k };
+    }
+    const m = s === 0 ? R(2, 4) : s === 1 ? R(2, 6) : R(3, 9);
+    return { q: `${n}/${d} = ?/${d * m}`, a: n * m };
+  },
+  dec(s) {
+    const kind = s < 2 ? pick(['mul', 'add']) : pick(['mul', 'add', 'div']); // dividing by a decimal is grade 6
+    if (kind === 'add') {
+      const T = s === 0 ? R(3, 10) : R(5, 20);
+      let a10; do { a10 = R(11, T * 10 - 1); } while (a10 % 10 === 0);
+      return { q: `${fmt1(a10 / 10)} + ${fmt1(T - a10 / 10)}`, a: T };
+    }
+    if (kind === 'div') {
+      const d = pick([0.2, 0.3, 0.4, 0.5, 0.6, 0.8]);
+      const q = R(3, 12);
+      return { q: `${fmt1(q * d)} ÷ ${d}`, a: q };
+    }
+    const opts = s === 0
+      ? [['0.5', 0.5, 2, 10], ['0.1', 0.1, 10, 9]]
+      : s === 1
+        ? [['0.5', 0.5, 2, 15], ['0.1', 0.1, 10, 12], ['0.25', 0.25, 4, 10], ['1.5', 1.5, 2, 8], ['0.2', 0.2, 5, 10]]
+        : [['0.25', 0.25, 4, 20], ['1.5', 1.5, 2, 15], ['2.5', 2.5, 2, 12], ['0.75', 0.75, 4, 10], ['0.4', 0.4, 5, 12]];
+    const [str, f, step, maxK] = pick(opts);
+    const W = step * R(1, maxK);
+    return Math.random() < 0.5 ? { q: `${str} × ${W}`, a: Math.round(f * W) } : { q: `${W} × ${str}`, a: Math.round(f * W) };
+  },
+  pct(s) {
+    const p = pick(s === 0 ? [10, 50, 100] : s === 1 ? [10, 20, 25, 50] : [5, 15, 20, 25, 30, 40, 75]);
+    const base = 100 / gcd(p, 100);
+    const maxW = s === 0 ? 120 : s === 1 ? 200 : 400;
+    const W = base * R(1, Math.max(1, Math.floor(maxW / base)));
+    return { q: `${p}% of ${W}`, a: p * W / 100 };
+  },
+  ops(s) {
+    const t = pick(s === 0 ? [0, 1, 2] : s === 1 ? [0, 1, 2, 3, 4] : [1, 2, 3, 4, 5, 6]);
+    const hi = s === 2 ? 12 : 9;
+    if (t === 0) { const a = R(2, 20), b = R(2, hi), c = R(2, 9); return { q: `${a} + ${b} × ${c}`, a: a + b * c }; }
+    if (t === 1) { const a = R(2, hi), b = R(1, 9), c = R(2, 6); return { q: `(${a} + ${b}) × ${c}`, a: (a + b) * c }; }
+    if (t === 2) { const c = R(2, 9), k = R(2, 9), a = R(k + 1, k + 30); return { q: `${a} − ${c * k} ÷ ${c}`, a: a - k }; }
+    if (t === 3) { const a = R(2, 10), b = R(0, 30); return { q: `${a}² + ${b}`, a: a * a + b }; }
+    if (t === 4) { const a = R(3, hi), b = R(2, 9), c = R(1, a * b); return { q: `${a} × ${b} − ${c}`, a: a * b - c }; }
+    if (t === 5) { const a = R(2, 5); return { q: `${a}³`, a: a ** 3 }; }
+    const a = R(2, 9), b = R(1, 6), c = R(1, 6), d = R(0, a * (b + c)); return { q: `${a} × (${b} + ${c}) − ${d}`, a: a * (b + c) - d };
+  },
+};
+
+// ---------- DOM refs ----------
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+const answer = $('answer'), feedback = $('feedback');
+const FONT = getComputedStyle(document.body).fontFamily;
+const isCoarse = matchMedia('(pointer: coarse)').matches;
+if (isCoarse) answer.readOnly = true; // use on-screen keypad instead of the phone keyboard
+
+// ---------- Best score (per-viewer convenience only) ----------
+let best = 0;
+try { best = +localStorage.getItem('mmd-best') || 0; } catch (e) {}
+function saveBest(v) { try { localStorage.setItem('mmd-best', v); } catch (e) {} }
+
+// ---------- Sound ----------
+let actx = null;
+function tone(freq, dur = 0.12, type = 'square', vol = 0.06, slideTo = null, delay = 0) {
+  if (!state.sound) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = actx.currentTime + delay;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  zap: () => { tone(880, 0.1, 'square', 0.05, 1760); tone(1320, 0.08, 'triangle', 0.04, null, 0.05); },
+  wrong: () => tone(180, 0.18, 'sawtooth', 0.05, 120),
+  boom: () => { tone(120, 0.35, 'sawtooth', 0.08, 40); tone(60, 0.4, 'square', 0.05, 30); },
+  level: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'triangle', 0.06, null, i * 0.09)),
+  freeze: () => tone(1200, 0.5, 'sine', 0.06, 300),
+  shield: () => [660, 990].forEach((f, i) => tone(f, 0.12, 'triangle', 0.05, null, i * 0.08)),
+  over: () => [392, 330, 262].forEach((f, i) => tone(f, 0.25, 'triangle', 0.06, null, i * 0.18)),
+};
+
+// ---------- Game state ----------
+const BASE_FALL = 15;      // seconds for a meteor to fall at speed 1, level 1
+const ZAPS_PER_LEVEL = 8;
+const MAX_METEORS = 7;
+let W = 0, H = 0, groundY = 0, dpr = 1;
+let stars = [], buildings = [];
+const game = {
+  state: 'menu', meteors: [], particles: [], texts: [], lasers: [],
+  score: 0, level: 1, streak: 0, bestStreak: 0, zapped: 0, attempts: 0,
+  lives: 5, maxLives: 5, timeLeft: 0, spawnT: 0, freezeT: 0, shake: 0, flash: 0,
+  banner: null, cannonAngle: -Math.PI / 2, missed: [],
+};
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height; groundY = H - 64;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  stars = Array.from({ length: Math.round(W * H / 3500) }, () => ({ x: Math.random() * W, y: Math.random() * groundY, r: Math.random() * 1.4 + 0.3, p: Math.random() * 6 }));
+  buildings = [];
+  let x = -10;
+  while (x < W + 10) {
+    const w = R(28, 60), h = R(22, 58);
+    const windows = [];
+    for (let wy = 8; wy < h - 6; wy += 10) for (let wx = 6; wx < w - 6; wx += 10) if (Math.random() < 0.55) windows.push([wx, wy]);
+    buildings.push({ x, w, h, hue: R(215, 250), windows });
+    x += w + R(2, 8);
+  }
+}
+new ResizeObserver(resize).observe(stage);
+
+const levelMult = () => Math.min(2.2, 1 + 0.09 * (game.level - 1));
+const fallTime = () => BASE_FALL / (state.speed * levelMult());
+const spawnInterval = () => state.spawn / Math.min(1.8, 1 + 0.06 * (game.level - 1));
+const multiplier = () => Math.min(5, 1 + Math.floor(game.streak / 5));
+
+function meteorPos(m) {
+  const x = Math.min(Math.max(m.fx * W, m.w / 2 + 4), Math.max(m.w / 2 + 4, W - m.w / 2 - 4)); // stay on screen after resizes
+  return { x, y: -m.h + m.p * (groundY - m.h / 2 + m.h) };
+}
+
+function spawnMeteor() {
+  if (game.meteors.length >= MAX_METEORS) return;
+  const onScreen = new Set(game.meteors.map(m => m.a));
+  let prob, topic;
+  for (let i = 0; i < 25; i++) {
+    topic = pick(state.topics);
+    prob = GEN[topic](state.size);
+    if (!onScreen.has(prob.a)) break;
+  }
+  ctx.font = '800 21px ' + FONT;
+  const w = Math.max(84, ctx.measureText(prob.q).width + 38), h = 46;
+  // pick an x that doesn't overlap meteors still near the top
+  let fx = 0.5;
+  for (let i = 0; i < 20; i++) {
+    const px = R(Math.ceil(w / 2 + 8), Math.floor(Math.max(w / 2 + 8, W - w / 2 - 8)));
+    const clash = game.meteors.some(m => m.p < 0.25 && Math.abs(m.fx * W - px) < (m.w + w) / 2 + 6);
+    fx = px / W;
+    if (!clash) break;
+  }
+  const gold = state.powerups && Math.random() < 0.1;
+  game.meteors.push({ ...prob, topic, fx, p: 0, w, h, gold, wobble: Math.random() * 6,
+    craters: Array.from({ length: 3 }, () => [Math.random() * w - w / 2, Math.random() * h - h / 2, Math.random() * 4 + 2]) });
+}
+
+// ---------- Effects ----------
+function burst(x, y, color, n = 26, speed = 220) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = Math.random() * speed + 40;
+    game.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, life: 1, decay: Math.random() * 1.2 + 0.9, color, r: Math.random() * 3 + 1.5 });
+  }
+}
+function floatText(x, y, text, color = '#fff', size = 20, life = 1.2) {
+  game.texts.push({ x, y, text, color, size, life, max: life });
+}
+function say(msg, cls = '') { feedback.textContent = msg; feedback.className = 'feedback ' + cls; }
+function bump(id) { const el = $(id); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+
+// ---------- Game flow ----------
+function startGame() {
+  Object.assign(game, {
+    state: 'playing', meteors: [], particles: [], texts: [], lasers: [], missed: [],
+    score: 0, level: 1, streak: 0, bestStreak: 0, zapped: 0, attempts: 0,
+    lives: state.lives, maxLives: state.lives, timeLeft: state.timer, spawnT: 0.6, freezeT: 0, shake: 0, flash: 0, banner: null,
+  });
+  $('timerStat').classList.toggle('show', state.timer > 0);
+  hideOverlay(); hud();
+  answer.value = ''; say('Type the answer and press Enter!');
+  if (!isCoarse) answer.focus();
+  tone(1, 0.01, 'sine', 0.0001); // unlock audio on user gesture
+}
+
+function endGame(reason) {
+  game.state = 'over';
+  sfx.over();
+  const isBest = game.score > best;
+  if (isBest) { best = game.score; saveBest(best); }
+  const acc = game.attempts ? Math.round(100 * game.zapped / game.attempts) : 0;
+  const title = reason === 'time' ? "⏱️ Time's up!" : '💥 City hit!';
+  const review = game.missed.slice(-3).map(m => `<div>${m.q} = <b style="display:inline;font-size:inherit;color:var(--accent)">${m.a}</b></div>`).join('');
+  showOverlay(`
+    <h2>${title}</h2>
+    ${isBest && game.score > 0 ? '<div class="newbest">🏆 New best score!</div>' : `<p class="small">Best score: ${best}</p>`}
+    <div class="results">
+      <div><b>${game.score}</b><span>Score</span></div>
+      <div><b>${game.zapped}</b><span>Meteors zapped</span></div>
+      <div><b>${game.bestStreak}</b><span>Best streak</span></div>
+      <div><b>${acc}%</b><span>Accuracy</span></div>
+    </div>
+    ${review ? `<p class="small" style="margin-top:10px">Ones that got away:</p><div class="small" style="font-size:15px;color:#cdd4f5">${review}</div>` : ''}
+    <button class="big-btn" id="againBtn">Play again</button>
+    <p class="small">Tip: try a different preset on the left!</p>`);
+  $('againBtn').onclick = startGame;
+}
+
+function togglePause() {
+  if (game.state === 'playing') {
+    game.state = 'paused';
+    showOverlay(`<h2>Paused</h2><p>Take a breath. The meteors will wait.</p><button class="big-btn" id="resumeBtn">Resume</button><p class="small">Press Esc to resume</p>`);
+    $('resumeBtn').onclick = togglePause;
+  } else if (game.state === 'paused') {
+    game.state = 'playing'; hideOverlay();
+    if (!isCoarse) answer.focus();
+  }
+}
+
+function showMenu() {
+  showOverlay(`
+    <h2>Math Meteor Defense</h2>
+    <p>Meteors are falling on the city! Each one carries a math problem.</p>
+    <p><b>Type the answer + Enter</b> to zap it with your laser. ⚡</p>
+    <p class="small">✨ Gold meteors freeze time · 🔥 Every 10-in-a-row earns a shield</p>
+    <button class="big-btn" id="playBtn">Play!</button>
+    <p class="small">${best ? 'Best score: ' + best : 'Pick a preset on the left to change the challenge.'}</p>`);
+  $('playBtn').onclick = startGame;
+}
+function showOverlay(html) { $('overlayCard').innerHTML = html; $('overlay').classList.remove('hidden'); }
+function hideOverlay() { $('overlay').classList.add('hidden'); }
+
+function hud() {
+  $('hScore').textContent = game.score;
+  $('hLevel').textContent = game.level;
+  $('hStreak').textContent = game.streak + (multiplier() > 1 ? `  ×${multiplier()}` : '');
+  const max = game.state === 'menu' ? state.lives : game.maxLives;
+  const cur = game.state === 'menu' ? state.lives : game.lives;
+  $('hLives').textContent = max > 6 ? `🛡️ ${cur}/${max}` : '🛡️'.repeat(Math.max(0, cur)) + '▫️'.repeat(Math.max(0, max - cur));
+  $('hTime').textContent = Math.ceil(game.timeLeft);
+}
+
+function submit() {
+  if (game.state !== 'playing') return;
+  const raw = answer.value.trim();
+  if (!raw) return;
+  const n = Number(raw);
+  answer.value = '';
+  if (!Number.isFinite(n)) { say('Numbers only, space cadet! 🚀', 'bad'); return; }
+  game.attempts++;
+  const hits = game.meteors.filter(m => m.a === n);
+  if (!hits.length) {
+    game.streak = 0; hud();
+    sfx.wrong();
+    answer.classList.remove('wrong', 'right'); void answer.offsetWidth; answer.classList.add('wrong');
+    say(`No meteor has the answer ${n}. Try again!`, 'bad');
+    return;
+  }
+  const m = hits.reduce((a, b) => (b.p > a.p ? b : a)); // zap the lowest one
+  zap(m);
+  answer.classList.remove('wrong', 'right'); void answer.offsetWidth; answer.classList.add('right');
+}
+
+function zap(m) {
+  const { x, y } = meteorPos(m);
+  game.meteors.splice(game.meteors.indexOf(m), 1);
+  game.zapped++; game.streak++;
+  game.bestStreak = Math.max(game.bestStreak, game.streak);
+  const pts = (10 + 2 * (game.level - 1)) * multiplier();
+  game.score += pts;
+  game.lasers.push({ x, y, life: 0.18 });
+  game.cannonAngle = Math.atan2(y - (H - 14), x - W / 2);
+  burst(x, y, m.gold ? '#ffd35a' : TOPIC_BY_ID[m.topic].color, 30);
+  burst(x, y, '#ffffff', 10, 120);
+  floatText(x, y - 10, `+${pts}`, '#ffe68a', 22);
+  sfx.zap();
+  const cheers = ['Nice!', 'Great job!', 'Boom! 💥', 'Awesome!', 'You got it!', 'Math wizard! 🧙', 'Zapped!'];
+  say(`${m.q} = ${m.a} — ${pick(cheers)}`, 'good');
+  if (m.gold) { game.freezeT = 4; floatText(W / 2, groundY * 0.4, 'FREEZE! ❄️', '#9be7ff', 34, 1.6); sfx.freeze(); }
+  if (game.streak % 10 === 0) {
+    if (game.lives < game.maxLives) { game.lives++; floatText(W / 2, groundY - 30, '+1 shield 🛡️', '#86efac', 24, 1.6); sfx.shield(); }
+    else floatText(W / 2, groundY - 30, `${game.streak} in a row! 🔥`, '#ffb627', 24, 1.6);
+  }
+  if (game.zapped % ZAPS_PER_LEVEL === 0) {
+    game.level++;
+    game.banner = { text: `LEVEL ${game.level}!`, life: 1.8 };
+    sfx.level(); bump('hLevel');
+  }
+  bump('hScore'); hud();
+}
+
+function miss(m) {
+  const { x } = meteorPos(m);
+  game.meteors.splice(game.meteors.indexOf(m), 1);
+  game.lives--; game.streak = 0; game.shake = 14; game.flash = 0.35;
+  game.missed.push({ q: m.q, a: m.a });
+  burst(x, groundY, '#ff7a45', 40, 260);
+  burst(x, groundY, '#ffd35a', 16, 160);
+  floatText(Math.min(W - 90, Math.max(90, x)), groundY - 50, `${m.q} = ${m.a}`, '#ffb4c0', 22, 2.4);
+  sfx.boom();
+  say(`Oops! ${m.q} = ${m.a}. You'll get the next one!`, 'bad');
+  hud(); bump('hLives');
+  if (game.lives <= 0) endGame('lives');
+}
+
+// ---------- Update & render ----------
+function update(dt) {
+  if (state.timer > 0) {
+    const before = Math.ceil(game.timeLeft);
+    game.timeLeft -= dt;
+    if (Math.ceil(game.timeLeft) !== before) hud();
+    if (game.timeLeft <= 0) { game.timeLeft = 0; hud(); endGame('time'); return; }
+  }
+  const frozen = game.freezeT > 0;
+  if (frozen) game.freezeT -= dt;
+  else {
+    const ft = fallTime();
+    for (const m of [...game.meteors]) {
+      m.p += dt / ft * (m.gold ? 0.85 : 1);
+      if (m.p >= 1) { miss(m); if (game.state !== 'playing') return; }
+    }
+    game.spawnT -= dt;
+    if (game.spawnT <= 0 || game.meteors.length === 0) { spawnMeteor(); game.spawnT = spawnInterval(); }
+  }
+}
+
+function updateFx(dt) {
+  for (const p of game.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt; p.life -= p.decay * dt; }
+  game.particles = game.particles.filter(p => p.life > 0);
+  for (const t of game.texts) { t.y -= 30 * dt; t.life -= dt; }
+  game.texts = game.texts.filter(t => t.life > 0);
+  for (const l of game.lasers) l.life -= dt;
+  game.lasers = game.lasers.filter(l => l.life > 0);
+  if (game.banner) { game.banner.life -= dt; if (game.banner.life <= 0) game.banner = null; }
+  game.shake = Math.max(0, game.shake - 40 * dt);
+  game.flash = Math.max(0, game.flash - dt);
+  const target = game.meteors.length ? (() => { const low = game.meteors.reduce((a, b) => b.p > a.p ? b : a); const { x, y } = meteorPos(low); return Math.atan2(y - (H - 14), x - W / 2); })() : -Math.PI / 2;
+  game.cannonAngle += (target - game.cannonAngle) * Math.min(1, dt * 4);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+function drawMeteor(m, t) {
+  const { x, y } = meteorPos(m);
+  const col = m.gold ? '#ffd35a' : TOPIC_BY_ID[m.topic].color;
+  const danger = m.p > 0.75;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.sin(t * 2 + m.wobble) * 0.03);
+  // fiery tail
+  const tail = m.h * 2.6;
+  const g = ctx.createLinearGradient(0, -tail, 0, 0);
+  g.addColorStop(0, 'rgba(255,140,60,0)');
+  g.addColorStop(1, m.gold ? 'rgba(255,220,90,.75)' : 'rgba(255,120,60,.55)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(-m.w * 0.38, -m.h * 0.2);
+  ctx.quadraticCurveTo(-m.w * 0.12, -tail * 0.6, Math.sin(t * 9 + m.wobble) * 6, -tail);
+  ctx.quadraticCurveTo(m.w * 0.12, -tail * 0.6, m.w * 0.38, -m.h * 0.2);
+  ctx.fill();
+  // glow
+  ctx.shadowColor = danger ? '#ff3b3b' : col;
+  ctx.shadowBlur = danger ? 22 + Math.sin(t * 12) * 8 : 16;
+  // rock body
+  roundRect(-m.w / 2, -m.h / 2, m.w, m.h, m.h / 2);
+  const body = ctx.createLinearGradient(0, -m.h / 2, 0, m.h / 2);
+  if (m.gold) { body.addColorStop(0, '#ffe690'); body.addColorStop(1, '#e0a21a'); }
+  else { body.addColorStop(0, '#3a3358'); body.addColorStop(1, '#1f1a33'); }
+  ctx.fillStyle = body; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 3; ctx.strokeStyle = danger ? '#ff5d73' : col; ctx.stroke();
+  // craters
+  ctx.save(); roundRect(-m.w / 2, -m.h / 2, m.w, m.h, m.h / 2); ctx.clip();
+  ctx.fillStyle = m.gold ? 'rgba(160,100,0,.25)' : 'rgba(255,255,255,.05)';
+  for (const [cx, cy, r] of m.craters) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+  // problem text
+  ctx.font = '800 21px ' + FONT;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = m.gold ? '#2a1600' : '#ffffff';
+  ctx.fillText(m.q, 0, 1);
+  if (m.gold) { ctx.font = '16px sans-serif'; ctx.fillText('✨', m.w / 2 - 4, -m.h / 2 + 2); }
+  ctx.restore();
+}
+
+function render(t) {
+  ctx.save();
+  ctx.clearRect(0, 0, W, H);
+  if (game.shake > 0) ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
+  // sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#070a18'); sky.addColorStop(0.7, '#141a3d'); sky.addColorStop(1, '#2a1f4a');
+  ctx.fillStyle = sky; ctx.fillRect(-20, -20, W + 40, H + 40);
+  for (const s of stars) {
+    ctx.globalAlpha = 0.45 + 0.45 * Math.sin(t * 1.6 + s.p);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // moon
+  ctx.fillStyle = '#f4f1dc'; ctx.shadowColor = '#f4f1dc'; ctx.shadowBlur = 30;
+  ctx.beginPath(); ctx.arc(W - 70, 60, 22, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = '#141a3d'; ctx.beginPath(); ctx.arc(W - 62, 54, 20, 0, Math.PI * 2); ctx.fill();
+
+  // shield dome
+  const lifeFrac = game.state === 'menu' ? 1 : Math.max(0, game.lives / game.maxLives);
+  if (lifeFrac > 0) {
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(W / 2, groundY + 30, W * 0.62, 90, 0, Math.PI, 0);
+    const hueCol = lifeFrac > 0.5 ? '90,209,255' : lifeFrac > 0.25 ? '255,182,39' : '255,93,115';
+    ctx.strokeStyle = `rgba(${hueCol},${0.25 + 0.35 * lifeFrac + 0.1 * Math.sin(t * 3)})`;
+    ctx.lineWidth = 3; ctx.stroke();
+    ctx.fillStyle = `rgba(${hueCol},${0.05 * lifeFrac})`; ctx.fill();
+    ctx.restore();
+  }
+
+  // city
+  for (const b of buildings) {
+    ctx.fillStyle = `hsl(${b.hue},35%,16%)`;
+    ctx.fillRect(b.x, groundY + 64 - 8 - b.h, b.w, b.h + 8);
+    ctx.fillStyle = 'rgba(255,214,120,.8)';
+    for (const [wx, wy] of b.windows) ctx.fillRect(b.x + wx, groundY + 64 - 8 - b.h + wy, 4, 5);
+  }
+  ctx.fillStyle = '#0d1126'; ctx.fillRect(-20, H - 10, W + 40, 30);
+
+  // meteors
+  for (const m of game.meteors) drawMeteor(m, t);
+
+  // lasers
+  for (const l of game.lasers) {
+    const a = l.life / 0.18;
+    ctx.strokeStyle = `rgba(90,209,255,${a})`; ctx.lineWidth = 8 * a; ctx.shadowColor = '#5ad1ff'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(W / 2, H - 14); ctx.lineTo(l.x, l.y); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 3 * a;
+    ctx.beginPath(); ctx.moveTo(W / 2, H - 14); ctx.lineTo(l.x, l.y); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // cannon
+  ctx.save(); ctx.translate(W / 2, H - 14);
+  ctx.save(); ctx.rotate(game.cannonAngle);
+  ctx.fillStyle = '#9fb3ff'; roundRect(0, -6, 34, 12, 5); ctx.fill();
+  ctx.fillStyle = '#5ad1ff'; ctx.fillRect(28, -6, 6, 12);
+  ctx.restore();
+  ctx.fillStyle = '#3c4a8a'; ctx.beginPath(); ctx.arc(0, 0, 18, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#5ad1ff'; ctx.beginPath(); ctx.arc(0, -4, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // particles
+  for (const p of game.particles) {
+    ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // floating texts
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const tx of game.texts) {
+    ctx.globalAlpha = Math.min(1, tx.life / tx.max * 2);
+    ctx.font = `800 ${tx.size}px ` + FONT;
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.strokeText(tx.text, tx.x, tx.y);
+    ctx.fillStyle = tx.color; ctx.fillText(tx.text, tx.x, tx.y);
+  }
+  ctx.globalAlpha = 1;
+
+  // freeze tint
+  if (game.freezeT > 0) {
+    ctx.fillStyle = `rgba(120,200,255,${0.12 + 0.04 * Math.sin(t * 8)})`; ctx.fillRect(0, 0, W, H);
+    ctx.font = '800 16px ' + FONT;
+    ctx.fillStyle = '#bff0ff'; ctx.fillText(`❄️ Frozen ${game.freezeT.toFixed(1)}s`, W / 2, 22);
+  }
+  // level banner
+  if (game.banner) {
+    const b = game.banner, k = Math.min(1, (1.8 - b.life) * 5);
+    ctx.globalAlpha = Math.min(1, b.life * 2);
+    ctx.font = `900 ${Math.round(46 * (0.6 + 0.4 * k))}px ` + FONT;
+    ctx.lineWidth = 6; ctx.strokeStyle = '#3b1d00'; ctx.strokeText(b.text, W / 2, groundY * 0.35);
+    ctx.fillStyle = '#ffd35a'; ctx.fillText(b.text, W / 2, groundY * 0.35);
+    ctx.font = '700 16px ' + FONT;
+    ctx.fillStyle = '#fff'; ctx.fillText('Meteors are getting faster!', W / 2, groundY * 0.35 + 36);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  // hit flash
+  if (game.flash > 0) { ctx.fillStyle = `rgba(255,60,80,${game.flash * 0.6})`; ctx.fillRect(0, 0, W, H); }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (game.state === 'playing') update(dt);
+  if (game.state !== 'paused') updateFx(dt);
+  if (W > 0) render(now / 1000);
+  requestAnimationFrame(loop);
+}
+
+// ---------- Controls ----------
+function buildControls() {
+  $('presets').innerHTML = PRESETS.map((p, i) => `<button data-i="${i}"><span class="e">${p.e}</span>${p.name}</button>`).join('');
+  $('presets').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const p = PRESETS[+b.dataset.i];
+    Object.assign(state, structuredClone(p.s), { sound: state.sound });
+    updateAll();
+  };
+  $('topics').innerHTML = TOPICS.map(t => `<span class="chip" data-id="${t.id}" style="--c:${t.color}"><span class="dot"></span>${t.label}</span>`).join('');
+  $('topics').onclick = e => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    const id = c.dataset.id;
+    if (state.topics.includes(id)) {
+      if (state.topics.length === 1) { say('Keep at least one math topic on!', 'bad'); return; }
+      state.topics = state.topics.filter(x => x !== id);
+    } else state.topics = TOPICS.map(t => t.id).filter(x => x === id || state.topics.includes(x));
+    updateAll();
+  };
+  $('speed').oninput = e => { state.speed = +e.target.value; updateAll(); };
+  $('spawn').oninput = e => { state.spawn = +e.target.value; updateAll(); };
+  $('lives').oninput = e => { state.lives = +e.target.value; updateAll(); };
+  $('timer').onclick = e => { const b = e.target.closest('button'); if (b) { state.timer = +b.dataset.v; updateAll(); } };
+  $('size').onclick = e => { const b = e.target.closest('button'); if (b) { state.size = +b.dataset.v; updateAll(); } };
+  $('powerups').onchange = e => { state.powerups = e.target.checked; updateAll(); };
+  $('sound').onchange = e => { state.sound = e.target.checked; updateAll(); };
+}
+
+function syncControls() {
+  document.querySelectorAll('#topics .chip').forEach(c => c.classList.toggle('on', state.topics.includes(c.dataset.id)));
+  $('speed').value = state.speed; $('speedVal').textContent = '×' + state.speed.toFixed(1);
+  $('spawn').value = state.spawn; $('spawnVal').textContent = state.spawn.toFixed(1) + 's';
+  $('lives').value = state.lives; $('livesVal').textContent = state.lives;
+  document.querySelectorAll('#timer button').forEach(b => b.classList.toggle('on', +b.dataset.v === state.timer));
+  document.querySelectorAll('#size button').forEach(b => b.classList.toggle('on', +b.dataset.v === state.size));
+  $('powerups').checked = state.powerups; $('sound').checked = state.sound;
+  const match = matchingPreset();
+  document.querySelectorAll('#presets button').forEach((b, i) => b.classList.toggle('active', PRESETS[i] === match));
+}
+
+function sameTopics(a, b) { return a.length === b.length && a.every(x => b.includes(x)); }
+function matchingPreset() {
+  return PRESETS.find(p => sameTopics(p.s.topics, state.topics) && ['speed', 'spawn', 'lives', 'timer', 'size', 'powerups'].every(k => p.s[k] === state[k]));
+}
+
+function listJoin(arr) { return arr.length < 2 ? arr.join('') : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]; }
+
+function updatePrompt() {
+  const d = DEFAULTS, parts = [];
+  if (!sameTopics(state.topics, d.topics)) {
+    const names = state.topics.map(id => TOPIC_BY_ID[id].label.toLowerCase());
+    parts.push(state.topics.length === TOPICS.length ? `mix in all six topics (${listJoin(names)})` : `only use ${listJoin(names)} problems`);
+  }
+  if (state.size !== d.size) parts.push(state.size === 0
+    ? 'use smaller, friendlier numbers (single-digit facts, easy fractions like 1/2 of 10)'
+    : 'use bigger numbers (two-digit × one-digit, larger dividends, trickier percents like 15% or 75%)');
+  if (state.speed !== d.speed) {
+    const pct = Math.round(Math.abs(state.speed - d.speed) / d.speed * 100);
+    parts.push(`make meteors fall about ${pct}% ${state.speed > d.speed ? 'faster' : 'slower'} (speed ×${state.speed.toFixed(1)})`);
+  }
+  if (state.spawn !== d.spawn) parts.push(`drop a new meteor every ${state.spawn.toFixed(1)}s instead of every ${d.spawn}s (${state.spawn < d.spawn ? 'a busier' : 'a calmer'} sky)`);
+  if (state.lives !== d.lives) parts.push(`give players ${state.lives} shield${state.lives > 1 ? 's' : ''} instead of ${d.lives}`);
+  if (state.timer !== d.timer) parts.push(`add a ${state.timer}-second countdown so each round is a timed sprint`);
+  if (state.powerups !== d.powerups) parts.push('remove the gold "freeze time" meteors');
+  if (state.sound !== d.sound) parts.push('start with sound effects muted');
+
+  const context = 'Math Meteor Defense is a single-file HTML canvas game for grade 5–6 kids: meteors carrying math problems fall toward a city, and the player types the answer to zap them with a laser.';
+  const preset = matchingPreset();
+  const tag = preset && preset.name !== 'Grade 5 Mix' ? ` These settings match the "${preset.name}" preset — make them the new default.` : '';
+  let text;
+  if (!parts.length) {
+    text = `${context}\n\nKeep the default settings (multiplication, division, fractions and decimals; medium numbers; normal speed; ${d.lives} shields; no timer). Suggest and add one new feature that would make it more exciting for 10–12 year olds, without making the math harder.`;
+  } else {
+    text = `${context}\n\nUpdate the game's default settings so that it will ${listJoin(parts)}.${tag} Keep every answer a whole number so kids can type it quickly.`;
+  }
+  $('prompt').textContent = text;
+}
+
+function updateAll() { syncControls(); updatePrompt(); if (game.state === 'menu') hud(); }
+
+$('copyBtn').onclick = async () => {
+  const text = $('prompt').textContent, btn = $('copyBtn');
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) {} ta.remove();
+  }
+  btn.textContent = 'Copied!'; btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'Copy prompt'; btn.classList.remove('done'); }, 1500);
+};
+
+// ---------- Input ----------
+answer.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+answer.addEventListener('input', () => { answer.value = answer.value.replace(/[^0-9]/g, '').slice(0, 5); answer.classList.remove('wrong', 'right'); });
+$('zapBtn').onclick = () => { submit(); if (!isCoarse) answer.focus(); };
+$('pauseBtn').onclick = () => { if (game.state === 'menu' || game.state === 'over') return; togglePause(); };
+stage.addEventListener('pointerdown', () => { if (game.state === 'playing' && !isCoarse) setTimeout(() => answer.focus(), 0); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { togglePause(); return; }
+  if (e.target === answer || game.state !== 'playing') return;
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (/^[0-9]$/.test(e.key)) { e.preventDefault(); answer.value = (answer.value + e.key).slice(0, 5); answer.focus(); }
+  else if (e.key === 'Enter' && answer.value) { e.preventDefault(); submit(); answer.focus(); }
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'playing') togglePause(); });
+
+$('keypad').innerHTML = ['1', '2', '3', '4', '5', '⌫', '6', '7', '8', '9', '0', '⏎'].map(k => `<button class="${k === '⏎' ? 'enter' : ''}" data-k="${k}">${k}</button>`).join('');
+$('keypad').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  e.preventDefault();
+  answer.classList.remove('wrong', 'right');
+  const k = b.dataset.k;
+  if (k === '⌫') answer.value = answer.value.slice(0, -1);
+  else if (k === '⏎') submit();
+  else answer.value = (answer.value + k).slice(0, 5);
+});
+
+// ---------- Boot ----------
+buildControls();
+updateAll();
+showMenu();
+hud();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
