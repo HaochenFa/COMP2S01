@@ -57,7 +57,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .zap { height: 66px; padding: 0 30px; font-size: 26px; font-weight: 700; background: var(--sun); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 5px 0 var(--ink); letter-spacing: .5px; }
 .zap:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
 .feedback { text-align: center; font-weight: 500; font-size: 17px; min-height: 26px; margin-top: 10px; color: var(--muted); }
-.feedback.good { color: #1b8f7f; } .feedback.bad { color: #d6453a; }
+.feedback.good { color: #1b8f7f; } .feedback.bad { color: #d6453a; } .feedback.tip { color: #5b3fb0; }
 .keypad { display: none; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-top: 8px; }
 .keypad button { height: 54px; font-size: 24px; font-weight: 600; background: #fff; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 4px 0 var(--ink); touch-action: manipulation; }
 .keypad button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
@@ -109,6 +109,7 @@ canvas { display: block; width: 100%; height: 100%; }
 .best { display: inline-block; background: var(--teal); color: #fff; border: 3px solid var(--ink); border-radius: 10px; padding: 2px 12px; font-weight: 700; transform: rotate(-3deg); animation: bump .5s 3; }
 .missed { background: #fff; border: 3px dashed var(--line); border-radius: 14px; padding: 8px 10px; margin-top: 10px; font-size: 17px; }
 .missed b { color: #d6453a; }
+.missed small { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
 
 @media (max-width: 640px) {
   .page { padding: 10px 10px 6px; }
@@ -196,48 +197,124 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
 const d1 = x => (Math.round(x * 10) / 10).toString();
 
+// Every problem carries its own help for wrong answers:
+//   hints: [a nudge, then a bigger step], never the answer itself
+//   why:   the reason shown after a miss ("7 × 8 = 56, because ...")
+//   traps: common wrong answers and what to say about each one
+function P(q, a, hints, why = '', traps = []) {
+  const t = {};
+  for (const [v, msg] of traps) if (Number.isInteger(v) && v >= 0 && v !== a) t[v] = msg;
+  return { q, a, hints, why, traps: t };
+}
+// "4, 8, 12…" but stopping before the answer (count = how many steps the answer takes)
+const countIn = (step, count) => Array.from({ length: Math.max(1, Math.min(3, count - 1)) }, (_, i) => step * (i + 1)).join(', ') + '…';
+function multHints(x, y) {
+  const [s, b] = x <= y ? [x, y] : [y, x];
+  const first = s === 10 || b === 10 ? `Times 10? Put a 0 on the end of ${s === 10 ? b : s}.`
+    : s === 2 ? `× 2 means double ${b}.`
+    : s === 5 ? `× 5 is half of ${b} × 10.`
+    : b === 9 ? `${s} × 9 is ${s} × 10, take away ${s}.`
+    : s === 4 ? `× 4: double ${b}, then double again.`
+    : b === 11 ? `${s} × 11 is ${s} × 10, plus ${s}.`
+    : `Count in ${b}s: ${countIn(b, s)}`;
+  return [first, `${b} × ${s - 1} = ${b * (s - 1)}. Add one more ${b}.`];
+}
+
 const GEN = {
   mult(t) {
-    const [a, b] = t === 0 ? [R(2, 5), R(2, 10)] : t === 1 ? [R(2, 10), R(2, 10)] : [R(3, 12), R(3, 12)];
-    return Math.random() < 0.5 ? { q: `${a} × ${b}`, a: a * b } : { q: `${b} × ${a}`, a: a * b };
+    let [x, y] = t === 0 ? [R(2, 5), R(2, 10)] : t === 1 ? [R(2, 10), R(2, 10)] : [R(3, 12), R(3, 12)];
+    if (Math.random() < 0.5) [x, y] = [y, x];
+    return P(`${x} × ${y}`, x * y, multHints(x, y), '', [[x + y, `That's ${x} + ${y}. This one is times (×)!`]]);
   },
   div(t) {
     const d = t === 0 ? R(2, 5) : t === 1 ? R(2, 10) : R(3, 12);
-    const q = t === 2 ? R(3, 12) : R(2, 10);
-    return { q: `${d * q} ÷ ${d}`, a: q };
+    const q = t === 2 ? R(3, 12) : R(2, 10), N = d * q;
+    return P(`${N} ÷ ${d}`, q, [`What times ${d} makes ${N}?`, `Count in ${d}s: ${countIn(d, q)} until you reach ${N}.`],
+      `because ${d} × ${q} = ${N}`, [[N - d, `That's ${N} − ${d}. This one is sharing (÷)!`]]);
   },
   frac(t) {
-    if (t === 0) { const d = pick([2, 3, 4, 5, 10]); const k = R(2, 10); return { q: `1/${d} of ${d * k}`, a: k }; }
+    if (t === 0) {
+      const d = pick([2, 3, 4, 5, 10]), k = R(2, 10), N = d * k;
+      return P(`1/${d} of ${N}`, k, [`Split ${N} into ${d} equal parts.`, `What times ${d} makes ${N}?`], `${N} ÷ ${d} = ${k}`);
+    }
     const d = pick(t === 1 ? [2, 3, 4, 5, 10] : [3, 4, 5, 6, 8, 10]);
     let n = R(1, d - 1);
     while (gcd(n, d) !== 1) n = R(1, d - 1);
-    if (Math.random() < 0.65) { const k = R(2, Math.min(10, Math.floor((t === 1 ? 60 : 100) / d))); return { q: `${n}/${d} of ${d * k}`, a: n * k }; }
-    const m = R(2, t === 1 ? 5 : 8);
-    return { q: `${n}/${d} = ?/${d * m}`, a: n * m };
+    if (Math.random() < 0.65) {
+      const k = R(2, Math.min(10, Math.floor((t === 1 ? 60 : 100) / d))), N = d * k;
+      if (n === 1) return P(`1/${d} of ${N}`, k, [`Split ${N} into ${d} equal parts.`, `What times ${d} makes ${N}?`], `${N} ÷ ${d} = ${k}`);
+      return P(`${n}/${d} of ${N}`, n * k, [`First find 1/${d} of ${N}.`, `1/${d} of ${N} is ${k}. You need ${n} of those.`],
+        `1/${d} of ${N} is ${k}, and ${n} × ${k} = ${n * k}`, [[k, `That's just 1/${d}. You need ${n} parts!`]]);
+    }
+    const m = R(2, t === 1 ? 5 : 8), D = d * m;
+    return P(`${n}/${d} = ?/${D}`, n * m, [`How many times bigger is ${D} than ${d}?`, `${d} × ${m} = ${D}. Do the same to the top: ${n} × ${m}.`],
+      `because ${d} × ${m} = ${D}, so ${n} × ${m} = ${n * m}`,
+      [[n, 'The bottom got bigger, so the top grows too!'], [n + D - d, `Fractions grow by times, not plus. ${d} × ? = ${D}`]]);
   },
   dec(t) {
     const kind = pick(t === 2 ? ['half', 'tenth', 'add', 'quarter'] : ['half', 'tenth', 'add']);
-    if (kind === 'half') { const n = 2 * R(1, 10); return { q: `0.5 × ${n}`, a: n / 2 }; }
-    if (kind === 'tenth') { const n = 10 * R(1, 10); return { q: `0.1 × ${n}`, a: n / 10 }; }
-    if (kind === 'quarter') { const n = 4 * R(1, 10); return { q: `0.25 × ${n}`, a: n / 4 }; }
+    if (kind === 'half') {
+      const n = 2 * R(1, 10);
+      return P(`0.5 × ${n}`, n / 2, [`0.5 is one half. What is half of ${n}?`, `Split ${n} into 2 equal parts.`], `half of ${n}`,
+        [[5 * n, `0.5 is less than 1, so the answer is smaller than ${n}!`], [n, `0.5 is less than 1, so the answer is smaller than ${n}!`]]);
+    }
+    if (kind === 'tenth') {
+      const n = 10 * R(1, 10);
+      return P(`0.1 × ${n}`, n / 10, [`0.1 is one tenth. Split ${n} into 10 parts.`, `${n} ÷ 10: take the 0 off the end.`], `${n} ÷ 10`,
+        [[n, `0.1 is less than 1, so the answer is smaller than ${n}!`]]);
+    }
+    if (kind === 'quarter') {
+      const n = 4 * R(1, 10);
+      return P(`0.25 × ${n}`, n / 4, [`0.25 is one quarter. Halve ${n}, then halve again.`, `Half of ${n} is ${n / 2}. Now halve that.`], `${n} ÷ 4`,
+        [[n / 2, "That's half. A quarter is half of that!"]]);
+    }
     const T = R(2, t === 2 ? 12 : 8);
     let a10; do { a10 = R(1, T * 10 - 1); } while (a10 % 10 === 0);
-    return { q: `${d1(a10 / 10)} + ${d1(T - a10 / 10)}`, a: T };
+    const wa = Math.floor(a10 / 10), wb = T - 1 - wa, ta = a10 % 10, tb = 10 - ta;
+    return P(`${d1(a10 / 10)} + ${d1(T - a10 / 10)}`, T, [`Add the tenths first: 0.${ta} + 0.${tb} makes 1 whole.`, `So it's ${wa} + ${wb}, plus 1 more.`],
+      `0.${ta} + 0.${tb} makes 1 more`, [[wa + wb, 'Almost! The tenths make 1 more.']]);
   },
   pct(t) {
     const opts = t < 2 ? [[50, 2, 100], [10, 10, 200], [25, 4, 100], [100, 1, 50]] : [[50, 2, 100], [10, 10, 200], [25, 4, 100], [20, 5, 100], [75, 4, 80]];
     const [p, step, max] = pick(opts);
-    const W = step * R(p === 100 ? 1 : 2, Math.floor(max / step));
-    return { q: `${p}% of ${W}`, a: p * W / 100 };
+    const W = step * R(p === 100 ? 1 : 2, Math.floor(max / step)), a = p * W / 100;
+    const help = {
+      50: [[`50% is half. What is half of ${W}?`, `Split ${W} into 2 equal parts.`], `half of ${W}`, []],
+      10: [[`10% is one tenth: ${W} ÷ 10.`, `Take the 0 off the end of ${W}.`], `${W} ÷ 10`, []],
+      25: [[`25% is a quarter. Halve ${W}, then halve again.`, `Half of ${W} is ${W / 2}. Half again?`], `${W} ÷ 4`, [[W / 2, "That's 50%. A quarter is half of that!"]]],
+      20: [[`20% is one fifth: ${W} ÷ 5.`, `How many 5s make ${W}?`], `${W} ÷ 5`, []],
+      75: [[`75% is three quarters. Find a quarter of ${W} first.`, `A quarter of ${W} is ${W / 4}. You need 3 of those.`], `3 × (${W} ÷ 4)`, [[W / 4, "That's 25%. You need three quarters!"]]],
+      100: [['100% means all of it!', `100% of ${W} is the whole ${W}, nothing taken away.`], 'all of it', []],
+    }[p];
+    return P(`${p}% of ${W}`, a, ...help);
   },
   ops(t) {
     const k = pick(t < 2 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3, 4, 5]);
-    if (k === 0) { const a = R(1, 10), b = R(2, 5), c = R(2, 5); return { q: `${a} + ${b} × ${c}`, a: a + b * c }; }
-    if (k === 1) { const a = R(1, 5), b = R(1, 5), c = R(2, 5); return { q: `(${a} + ${b}) × ${c}`, a: (a + b) * c }; }
-    if (k === 2) { const a = R(2, 6), b = R(2, 6), c = R(1, Math.min(9, a * b)); return { q: `${a} × ${b} − ${c}`, a: a * b - c }; }
-    if (k === 3) { const c = R(2, 5), q = R(2, 5), a = R(q + 1, q + 15); return { q: `${a} − ${c * q} ÷ ${c}`, a: a - q }; }
-    if (k === 4) { const a = R(2, 10); return { q: `${a}²`, a: a * a }; }
-    const a = R(2, 9), b = R(1, 20); return { q: `${a}² + ${b}`, a: a * a + b };
+    if (k === 0) {
+      const a = R(1, 10), b = R(2, 5), c = R(2, 5);
+      return P(`${a} + ${b} × ${c}`, a + b * c, [`× comes before +. Do ${b} × ${c} first.`, `${b} × ${c} = ${b * c}. Now add ${a}.`],
+        `${b} × ${c} = ${b * c} first`, [[(a + b) * c, 'You did + first. Do × first!']]);
+    }
+    if (k === 1) {
+      const a = R(1, 5), b = R(1, 5), c = R(2, 5);
+      return P(`(${a} + ${b}) × ${c}`, (a + b) * c, [`Brackets first: what is ${a} + ${b}?`, `${a} + ${b} = ${a + b}. Now times ${c}.`],
+        `brackets first: ${a} + ${b} = ${a + b}`, [[a + b * c, 'Brackets first! Add inside them, then times.']]);
+    }
+    if (k === 2) {
+      const a = R(2, 6), b = R(2, 6), c = R(1, Math.min(9, a * b));
+      return P(`${a} × ${b} − ${c}`, a * b - c, [`Do the × first: ${a} × ${b}.`, `${a} × ${b} = ${a * b}. Now take away ${c}.`],
+        `${a} × ${b} = ${a * b} first`, [[a * (b - c), 'Do × first, then take away.']]);
+    }
+    if (k === 3) {
+      const c = R(2, 5), q = R(2, 5), a = R(q + 1, q + 15);
+      return P(`${a} − ${c * q} ÷ ${c}`, a - q, [`÷ comes before −. Do ${c * q} ÷ ${c} first.`, `${c * q} ÷ ${c} = ${q}. Now ${a} take away ${q}.`],
+        `${c * q} ÷ ${c} = ${q} first`, [[(a - c * q) / c, 'You did − first. Do ÷ first!']]);
+    }
+    const a = k === 4 ? R(2, 10) : R(2, 9), sq = `${a}² means ${a} × ${a}`, notTwo = [2 * a, `${a}² is ${a} × ${a}, not ${a} × 2!`];
+    if (k === 4) return P(`${a}²`, a * a, [`${sq}.`, `${a} × ${a - 1} = ${a * (a - 1)}. Add one more ${a}.`], `${a} × ${a}`, [notTwo]);
+    const b = R(1, 20);
+    return P(`${a}² + ${b}`, a * a + b, [`${sq}. Do that first.`, `${a} × ${a} = ${a * a}. Now add ${b}.`], `${a} × ${a} = ${a * a} first`,
+      [[2 * a + b, `${a}² is ${a} × ${a}, not ${a} × 2!`]]);
   },
 };
 
@@ -284,6 +361,7 @@ const sfx = {
 
 // ============ Game state ============
 const BASE_FALL = 16, MAX_HEARTS = 5, MAX_ON_SCREEN = 5;
+const HINT_TIME = 5, HINT_SLOW = 0.5; // how long a hint shows, and how fast its meteor falls meanwhile
 let W = 0, H = 0, dpr = 1, groundBase = 0, groundY = 0;
 let bgLayer = null, cityLayer = null, twinkles = [], S = 1; // S shrinks meteors on narrow screens
 const game = {
@@ -390,7 +468,7 @@ function spawnMeteor() {
   const n = 11;
   const pts = Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2, k = 0.84 + Math.random() * 0.22; return [Math.cos(a) * r * k, Math.sin(a) * r * k]; });
   game.meteors.push({
-    ...prob, topic, fx: x / W, p: 0, r, lw, span, pts, fs, lh: Math.round(40 * S),
+    ...prob, topic, fx: x / W, p: 0, r, lw, span, pts, fs, lh: Math.round(40 * S), tries: 0, hint: '', hintT: 0,
     gold: game.waveIdx > 0 && Math.random() < 0.08,
     seed: Math.random() * 10, spin: (Math.random() - 0.5) * 1.2,
     craters: [[-0.35, -0.3, 0.22], [0.35, 0.25, 0.18], [0.1, 0.5, 0.12]],
@@ -436,6 +514,7 @@ function showMenu() {
   showCard(`
     <div class="logo"><span>Math</span><span>Meteor</span><small>DEFENSE</small></div>
     <p>Meteors are falling! Type the answer on a meteor to zap it before it bonks the city.</p>
+    <p class="muted">Got one wrong? The meteor slows down and shows you a hint.</p>
     <button class="btn" data-primary id="playBtn">Play wave ${menuWave + 1} <small>Enter</small></button>
     <div class="section-label">Start at wave</div>
     <div class="waves" id="waveBadges">${badges}</div>
@@ -513,7 +592,7 @@ function gameOver() {
   const prevBest = best.score, isBest = game.score > prevBest && game.score > 0;
   saveBest();
   const acc = game.attempts ? Math.round(100 * game.zapped / game.attempts) : 0;
-  const missed = game.missed.slice(-3).map(m => `<div>${m.q} = <b>${m.a}</b></div>`).join('');
+  const missed = game.missed.slice(-3).map(m => `<div>${m.q} = <b>${m.a}</b>${m.why ? `<small>${m.why}</small>` : ''}</div>`).join('');
   showCard(`
     <h2>Bonk!</h2>
     <p>The city ran out of hearts on wave ${game.waveIdx + 1}.</p>
@@ -559,11 +638,30 @@ function submit() {
   const hits = game.meteors.filter(m => m.a === n);
   if (!hits.length) {
     game.streak = 0; hud(); sfx.wrong(); flashInput('wrong');
-    say(`No meteor has the answer ${n}. Check again!`, 'bad');
+    giveHint(n);
     return;
   }
   zap(hits.reduce((a, b) => (b.p > a.p ? b : a)));
   flashInput('right');
+}
+
+// Which meteor was the player aiming for? One whose trap matches, else one with a
+// close answer (a slip like 54 for 56), else the lowest one, which the cannon is watching.
+function hintTarget(n) {
+  if (!game.meteors.length) return null;
+  const trapped = game.meteors.filter(m => m.traps[n]);
+  if (trapped.length) return trapped.reduce((a, b) => (b.p > a.p ? b : a));
+  const off = m => Math.abs(m.a - n) / Math.max(m.a, 4);
+  const near = game.meteors.reduce((a, b) => (off(b) < off(a) ? b : a));
+  return off(near) <= 0.3 ? near : game.meteors.reduce((a, b) => (b.p > a.p ? b : a));
+}
+function giveHint(n) {
+  const m = hintTarget(n);
+  if (!m) { say(`No meteor has the answer ${n}. Check again!`, 'bad'); return; }
+  const msg = m.traps[n] || m.hints[Math.min(m.tries++, m.hints.length - 1)]; // nudge first, then the bigger step
+  for (const o of game.meteors) o.hintT = 0; // one hint at a time, so bubbles never pile up
+  m.hint = msg; m.hintT = HINT_TIME;
+  say(`Not ${n}. Hint for ${m.q}: ${msg}`, 'tip');
 }
 
 function zap(m) {
@@ -588,12 +686,12 @@ function miss(m) {
   game.meteors.splice(game.meteors.indexOf(m), 1);
   game.hearts--; game.streak = 0; game.resolved++; game.waveMisses++;
   game.shake = 14; game.flash = 0.35;
-  game.missed.push({ q: m.q, a: m.a });
+  game.missed.push({ q: m.q, a: m.a, why: m.why });
   pow(x, groundY + 10, 'BONK!', CORAL, 56);
   debris(x, groundY, ['#9c7a6b', CORAL, SUN], 22, 280);
   floatText(Math.min(W - 100, Math.max(100, x)), groundY - 70, `${m.q} = ${m.a}`, '#ffd2cc', 26, 2.4);
   sfx.bonk();
-  say(`Oops! ${m.q} = ${m.a}. You'll get the next one!`, 'bad');
+  say(m.why ? `Oops! ${m.q} = ${m.a}, ${m.why}.` : `Oops! ${m.q} = ${m.a}. You'll get the next one!`, 'bad');
   hud(game.hearts);
   if (game.hearts <= 0) gameOver();
 }
@@ -606,7 +704,8 @@ function update(dt) {
   const w = waveInfo(game.waveIdx);
   const fall = BASE_FALL / (w.speed * speedMult());
   for (const m of [...game.meteors]) {
-    m.p += dt / fall;
+    m.p += dt / fall * (m.hintT > 0 ? HINT_SLOW : 1); // a hinted meteor slows down to give thinking time
+    m.hintT = Math.max(0, m.hintT - dt);
     if (m.p >= 1) { miss(m); if (game.state !== 'playing') return; }
   }
   if (game.spawned < w.count) {
@@ -666,10 +765,46 @@ function drawMeteor(m, t) {
   rrect(ctx, -m.lw / 2, -lh / 2 + 4, m.lw, lh, lh * 0.28);
   ctx.fillStyle = INK; ctx.save(); ctx.translate(0, 3); ctx.fill(); ctx.restore();
   rrect(ctx, -m.lw / 2, -lh / 2 + 4, m.lw, lh, lh * 0.28);
-  ctx.fillStyle = danger ? CORAL : PAPER; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = danger ? CORAL : m.hintT > 0 ? '#c9f2ec' : PAPER; ctx.fill(); ctx.stroke();
   ctx.font = `600 ${m.fs}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillStyle = danger ? '#fff' : INK; ctx.fillText(m.q, 0, 5);
   if (m.gold) { ctx.translate(m.lw / 2 - 2, -lh / 2 + 4); ctx.fillStyle = SUN; starburst(10, 5); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke(); }
+  ctx.restore();
+}
+
+function wrapText(text, maxW) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const tryLine = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(tryLine).width > maxW) { lines.push(line); line = word; } else line = tryLine;
+  }
+  return [...lines, line];
+}
+// A speech bubble next to the meteor the hint is about, above it if there's room, else below
+function drawHint(m) {
+  const { x, y } = meteorPos(m), fs = Math.round(18 * S), lh = Math.round(fs * 1.25), pad = 12;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, m.hintT / 0.4);
+  ctx.font = `500 ${fs}px ${FONT}`;
+  const lines = wrapText(m.hint, Math.min(W - 40, 270));
+  const bw = Math.max(...lines.map(l => ctx.measureText(l).width)) + pad * 2, bh = lines.length * lh + pad * 2 - 4;
+  const above = y - m.r - 18 - bh > 8;
+  const bx = Math.min(Math.max(x - bw / 2, 8), W - bw - 8), by = above ? y - m.r - 18 - bh : y + m.r + 22;
+  const tx = Math.min(Math.max(x, bx + 18), bx + bw - 18), edge = above ? by + bh : by, tip = above ? edge + 14 : edge - 14;
+  ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = INK;
+  ctx.fillStyle = INK; rrect(ctx, bx, by + 4, bw, bh, 14); ctx.fill();
+  ctx.fillStyle = PAPER; rrect(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx - 9, edge); ctx.lineTo(tx, tip); ctx.lineTo(tx + 9, edge); ctx.fill(); ctx.stroke();
+  ctx.fillRect(tx - 7.5, above ? edge - 3 : edge, 15, 3); // hide the bubble's edge under the tail
+  ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => ctx.fillText(l, bx + pad, by + pad + lh * i + lh / 2 - 2));
+  // the little "Hint" tag, like the skill cards
+  ctx.translate(bx + 12, by - 2); ctx.rotate(-0.06);
+  ctx.font = `700 ${Math.round(13 * S)}px ${FONT}`;
+  const tw = ctx.measureText('Hint').width + 14;
+  ctx.fillStyle = TEAL; rrect(ctx, 0, -10, tw, 20, 6); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.fillText('Hint', 7, 1);
   ctx.restore();
 }
 
@@ -724,6 +859,7 @@ function render(t) {
   for (const m of game.meteors) drawMeteor(m, t);
   if (cityLayer) ctx.drawImage(cityLayer, 0, 0, W, H);
   const tip = drawCannon(t);
+  for (const m of game.meteors) if (m.hintT > 0) drawHint(m);
 
   // lasers
   for (const l of game.lasers) {
