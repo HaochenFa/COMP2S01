@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `math-meteor-defense.html` is the game (currently V1.1). It is one file: HTML, CSS and JavaScript inline, with no build, no dependencies and no tests.
 - `math-meteor-defense-mvp.html` is the first version (MVP), made with the `/playground` skill. It is kept unchanged for the before-and-after demo, so do not edit it. It stores only its best score, under the `mmd-best` key, so it doesn't clash with the game's `mmd2-` keys.
 - `README.md` maps every requirement in the brief to where it lives in the game, and records what changed from MVP → V1 → V1.1. Update it when a change affects either.
+- `presentation-script.docx` is the script for the class demo, with screenshots of each step. It describes the game as it is now, so if the menu, hints or final screen change, its steps and screenshots go out of date.
 - Versions are annotated git tags: `hw1-meteor-v1` (the polished game) and `hw1-meteor-v1.1` (hints for wrong answers). The `hw1-v*` tags belong to Momo (`../hw1-momo/`). The folder was renamed from `inclass1-math-meteor-defense/`, and at the `hw1-meteor-*` tags it still has that old name.
 
 ## Commands

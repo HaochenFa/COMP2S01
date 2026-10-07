@@ -14,6 +14,7 @@ needs installing.
 |---|---|
 | `math-meteor-defense.html` | The game (V1.1). |
 | `math-meteor-defense-mvp.html` | The first version (MVP), kept for the before-and-after. |
+| `presentation-script.docx` | The script for the live demo: what to do, what to say, and screenshots of each step. |
 | `CLAUDE.md` | Notes for working on the code with Claude Code. |
 
 The game loads its font, Fredoka, from Google Fonts. Without internet it
